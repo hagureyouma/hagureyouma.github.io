@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta content="ja" http-equiv="Content-Language">
+    <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+    <title>PlayStation3のコントローラーをWindows10搭載PCで使うよ</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <link href="/css/hagureyouma.css" rel="stylesheet" type="text/css">
+    <link href="https://fonts.googleapis.com/css?family=Press+Start+2P" rel="stylesheet">
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.8.1/css/all.css" integrity="sha384-50oBUHEmvpQ+1lW4y57PTFmhCaXp0ML5d60M1M7uH2+nqUivzIebhndOJK28anvf" crossorigin="anonymous">
+</head>
+
+<body>
+    <div class="maincontainer">
+        <header>
+            <div class="header">
+                <a class="area" href="/index.html"></a>
+                <i class="fas fa-ghost"></i>
+                <div>
+                    <h1>HAGURE YOUMA'S HIDEOUT</h1>
+                    <p>はぐれヨウマの隠れ家</p>
+                </div>
+                <i class="fas fa-ghost"></i>
+            </div>
+        </header>
+        <div class="contents">
+            <section>
+                <h1 class="head">PlayStation3のコントローラーをWindows10のPCで使うよ</h1>
+                <hr>
+                <p>PlayStation3（以下PS3）のコントローラー、DualShock3やSIXAXISをPCで使う方法のメモですよ</p>
+                <p>PCゲームもPSのコントローラーで遊びたい！という私みたいな人もいるよね</p>
+            </section>
+            <nav>
+                <div class="menu">
+                    <h3 class="head">目次</h3>
+                    <ul>
+                        <li><a href="#preparation">用意するもの</a></li>
+                        <li><a href="#attention">注意すること</a></li>
+                        <li><a href="#connect">PCにコントローラーを接続</a></li>
+                        <li><a href="#install">ドライバーのインストール</a></li>
+                        <li><a href="#use">コントローラーの使用</a></li>
+                        <li><a href="#monitor">XInput Wrapper for DS3付属のツール、SCP Monitorについて</a></li>
+                        <li><a href="#controller">コントローラーについていろいろ</a></li>
+                    </ul>
+                </div>
+            </nav>
+            <section>
+                <h2 class="head" id="preparation">用意するもの</h2>
+                <dl>
+                    <dt>Windows10搭載PC</dt>
+                    <dd>他のOSについては割愛します</dd>
+                    <dt>PS3純正コントローラー　DualShock3、もしくはSIXAXIS</dt>
+                    <dd>なおコントローラーは最大4個まで接続できます<br>SIXAXISは振動機能が省かれているぶん本体が軽いので振動機能がいらないなら良い品<br>サードパーティ製の互換コントローラーは残念ながら使えないようです</dd>
+                    <dt>USB A to miniBケーブル</dt>
+                    <dd>PS3にコントローラーを有線接続する時に使うUSBケーブルと同等のもの　無線接続する場合でもドライバーをインストールする際に必要になります</dd>
+                    <dt>（無線接続する場合）Bluetoothアダプター</dt>
+                    <dd>コントローラーの接続に使ったBluetoothアダプターには他の機器を接続できなくなるので、専用のアダプターを用意したほうがよさそうです。私は「<a href="https://www.amazon.co.jp/dp/B07NQ5YGDW/ref=cm_sw_r_tw_dp_x_TAyJFbRGW94GB" target="_blank">TP-Link UB400</a>」を使いました</dd>
+                </dl>
+                <h2 class="head" id="attention">注意すること</h2>
+                <dl>
+                    <dt>もしも他のPS3コントローラー用のドライバーをインストールしている場合は、必ずアンインストールしておきます。</dt>
+                    <dt>使うコントローラーをPS3とペアリングしている場合はペアリングを解除しておくか、PCでコントローラーを使う時はPS3をシャットダウンしておきます。</dt>
+                    <dd>コントローラーをPCとPS3で兼用するのはペアリングの関係でやりづらいみたい　</dd>
+                </dl>
+                <h2 class="head" id="connect">PCにコントローラーを接続</h2>
+                <ol>
+                    <li>PCにコントローラーをUSBケーブルで接続します。複数のコントローラーを使う場合でもインストールの際は1個繋ぐだけでたぶん良いはず。「スタートボタン」→「設定」→「デバイス」→「デバイスとプリンター」に「PLAYSTATION(R)3 Controller」が表示されれば認識されています。まだこの時点ではボタンを押しても反応しません。</li>
+                    <li>無線接続をしない場合は「ドライバーのインストール」に進みます。</li>
+                    <li>PCにBluetoothアダプターを接続します。Bluetoothアダプターのドライバーは勝手にインストールされるMicrosoft純正のものを使い、もしもアダプターのメーカーが提供するドライバーがあってもインストールしないようにします。</li>
+                    <li>「デバイスとプリンター」のBluetoothアダプターを右クリックして、「Bluetooth 設定」をクリックします。</li>
+                    <li>「Bluetooth 設定」の「Bluetooth デバイスによるこの PC の検出を許可する」にチェックを入れて「OK」をクリックします。</li>
+                    <li>「ドライバーのインストール」に続きます。</li>
+                </ol>
+                <h2 class="head" id="install">ドライバーのインストール</h2>
+                <p>PCでPS3のコントローラーを使えるようにするドライバーはいくつか制作されているようです。その中で<strong>「XInput Wrapper for DS3」</strong>を使うことにしました。</p>
+                <p>XInput Wrapper for DS3は、Xbox360コントローラーのために用意された規格のXInputをPS3のコントローラーでも使えるようにするドライバーで、現代のゲームならXInputには基本的に対応していてボタン配置なども設定済みになるので便利です。</p>
+                <ol>
+                    <li><a href="https://forums.pcsx2.net/Thread-XInput-Wrapper-for-DS3-and-Play-com-USB-Dual-DS2-Controller" target="_blank">XInput Wrapper for DS3の公式サイト</a>から、XInput Wrapper for DS3の本体とアップデートファイルをダウンロードします。<br>公式サイトの「Download latest version here. 「1.2.0.160」」が本体のリンク先で、「Download latest update here. 「1.2.2.175」」がアップデートファイルのリンク先になります。なおダウンロードしたファイルは7z形式で圧縮されており、解凍するには<a href="https://sevenzip.osdn.jp" target="_blank">7-Zip</a>などの圧縮・解凍ソフトが必要になります。</li>
+                    <li>Cドライブの中のProgram Filesフォルダーに「Scarlet.Crush Productions」フォルダーを作成します。フォルダーはどこに置いてもどんな名前でも別に良いけどインストール後に移動させてはいけないみたい。</li>
+                    <li>XInput Wrapper for DS3の本体のファイル「SCP-DS-Driver-Package-1.2.0.160.7z」を解凍して、中に入っている「ScpServer」フォルダーの中の「bin」フォルダーの中身を先程の「Scarlet.Crush Productions」フォルダーにコピーします。</li>
+                    <li>XInput Wrapper for DS3のアップデートファイル「SCP-DS-Driver-Package-1.2.2.175-Update.7z」を解凍して、中に入っている「bin」フォルダーの中身を先程の「Scarlet.Crush Productions」フォルダーにコピーしてファイルを置き換えます。</li>
+                    <li>「Scarlet.Crush Productions」フォルダーの中の「ScpDriver.exe」を右クリックし、「管理者として実行」をクリックして管理者権限で起動します。</li>
+                    <li>「SCP Driver Installer」が開いたら、無線接続する場合は「Bluetooth Driver」にチェックを入れて、「Install」をクリック。</li>
+                    <li>インストール中に何度か「このデバイス ソフトウェアをインストールしますか？」というメッセージか表示されます。全て「インストールする」をクリックします。</li>
+                    <li>しばらくすると「Install Succeeded.」と表示されます。なお、無線接続をする場合で「-- Install Summary --」に「Bluetooth Driver」が表示されない場合があるそうです。その場合は、「Uninstall」をクリックしてXInput Wrapper for DS3を一旦アンインストールした後、「Force Install」にチェックを入れてから再度「Install」をクリックします。</li>
+                    <li>正しくインストールされていれば、「デバイスとプリンター」に「PLAYSTATION(R)3 Controller」の代わりに「Xbox 360 Controller for Windows」が表示されているはず。それを右クリックして「ゲーム コントローラーの設定」の「プロパティ」でボタンの反応を確認できます。無線接続する場合の手順を行っていれば、USBケーブルを抜いても操作ができます。もしもコントローラーが反応しない場合はPSボタンを押してみましょう。<br>なおコントローラーの動作を確認できる<a href="https://gamepad-tester.com" target="_blank">Gamepad Tester</a>といったサイトもあるので見てみるのも良いかも </li>
+
+                </ol>
+                <h2 class="head" id="use">コントローラーの使用</h2>
+                <h3 class="head">主な操作</h3>
+                <dl>
+                    <dt>有線接続する</dt>
+                    <dd>PCのUSBコネクターにコントローラーをUSBケーブルで接続します。</dd>
+                    <dt>無線接続する</dt>
+                    <dd>有線接続していない状態でコントローラーのPSボタンを押します。</dd>
+                    <dt>無線接続を切断する</dt>
+                    <dd>L1＋R2＋PSボタンを2秒間押します。なんですが私の環境ではなぜか接続が切れない…</dd>
+                    <dt>接続状況を確認する</dt>
+                    <dd>XInput Wrapper for DS3付属のツール、<a href="#5">SCP Monitor</a>で確認できます。</dd>
+                    <dt>ボタンの入力を確認する</dt>
+                    <dd>「ゲームコントローラー」で確認したいコントローラーを選択して「プロパティ」で確認できます。「ゲームコントローラー」を開くにはタスクバーの検索欄に「ゲーム」と入力して「USB ゲーム コントローラーのセットアップ」を開くのが早いでしょう。</dd>
+                    <dt>ゲームを操作する</dt>
+                    <dd>XBOX360コントローラー（XInput）に対応しているゲームなら、特に設定は不要でそのまま使えます。ゲームコントローラーに対応していてもXInputには対応していないゲームだとボタン配置を設定する必要があるかもしれません。</dd>
+                    <dt>ゲームコントローラーに対応していないゲームや、ゲーム以外のアプリを操作したい</dt>
+                    <dd><a href="https://joytokey.net/ja/" target="_blank"><strong>JoyToKey</strong></a>を使いましょう。JoyToKeyは、ゲームコントローラーでマウスカーソルの移動やクリック、キー入力ができるようにするツールです。</dd>
+                    <dt>振動機能を無効化したい</dt>
+                    <dd>XInput Wrapper for DS3付属のツール、<a href="#5">SCP Monitor</a>で行えます。</dd>
+                    <dt>ボタンの連射、押しっぱなしをしたい</dt>
+                    <dd>ボタンの連射や押しっぱなしは、XInput Wrapper for DS3だけではできないようです。<a href="https://sites.google.com/site/0dd14lab/xinput-plus" target="_blank"><strong>XInput Plus</strong></a>などのXInput対応コントローラー用の動作設定ツールを使いましょう。</dd>
+                    <dt>SIXAXIS（モーションセンサー・6軸検出システム）は？</dt>
+                    <dd>XInput Wrapper for DS3は未対応な模様</dd>
+
+                </dl>                
+                <h2 Class="head" id="monitor">XInput Wrapper for DS3付属のツール、SCP Monitorについて</h2>
+                <p>SCP Monitorはコントローラーの接続状況の確認、設定の変更やボタンの入れ替えなどを行うツールです。</p>
+                <p>ただしボタン入れ替えの機能は最低限といった印象で連射や押しっぱなしなども備えていないので、コントローラーの詳しい設定を色々としたい場合はこれよりもより使いやすく高機能な<a href="https://sites.google.com/site/0dd14lab/xinput-plus" target="_blank"><strong>XInput Plus</strong></a>を使うと良さそうです</p>
+                <dl>
+                    <dt>SCP Monitorの起動</dt>
+                    <dd>「ScpDriver.exe」と同じフォルダーにある「ScpMonitor.exe」を起動します。するとSCP Monitorがタスクエリアに常駐します。なお、コントローラーを使用する際に常駐させておく必要はないので、設定作業が済んだら終了させておきましょう。</dd>
+                    <dt>SCP Monitorの終了</dt>
+                    <dd>SCP Monitorのタスクトレイアイコンを右クリックして「Exit」をクリックします。</dd>
+                </dl>
+                <h3 class="head">SCP Monitorの主な機能</h3>
+                <dl>
+                    <dt>コントローラーの接続状況の確認</dt>
+                    <dd>SCP MonitorのタスクトレイアイコンをクリックするとSCP Monitorのウィンドウが表示されてコントローラーの状態が表示されます。有線接続していると「Charged」無線接続していると「Full」、接続が切れていると「Reserved」と表示されます。</dd>
+                    <dt>コントローラーの振動機能を無効にする</dt>
+                    <dd>SCP Monitorのタスクトレイアイコンを右クリックして「Configuration」をクリック、「Service Configuration」の「Disable Rumble」にチェックを入れて「OK」をクリックします。</dd>
+                    <dt>ボタンの入れ替え</dt>
+                    <dd>SCP Monitorのタスクトレイアイコンを右クリックして「Profile Manager」をクリックするとボタン入れ替えの設定画面が表示されます。しかしちょっと使い勝手が微妙。</dd>                    
+                </dl>
+                <h2 Class="head" id="controller">コントローラーについていろいろ</h2>
+                <dl>
+                    <dt>左右のスティックの軸が削れる</dt>
+                    <dd>ゲームコントローラーのあるあるな難点。軸が削れないようマスキングテープなどを巻いておくとよさそう</dd>                    
+                    <dt>ボタンの反応が悪い</dt>
+                    <dd>ボタンとフレキシブル基板との接点に汚れがついて接触不良を起こすようです。コントローラーを分解して接点を接点復活剤で清掃すると多分復活します。</dd>
+                    <dt>スティックがニュートラルに戻りづらい</dt>
+                    <dd>キャラが勝手に歩き出すやつ<br>コントローラーを分解してスティック基部を清掃し可動部分にシリコンスプレーなどの潤滑剤をつけておくと改善するかも<br>この現象はPS3のコントローラーの場合はスティック基部の力がかかるところに樹脂を使っていてそこが磨耗や変形することで起きているように見えます。より丈夫な金属を使うわけにはいかなかったんでしょうか。</dd>
+                    <dt>DualShock3のボタンの誤作動</dt>
+                    <dd>DualShock3で意図しないボタン入力が発生するという現象が起きることがありました。対処法を検索するとコントローラーを分解して内部にティッシュを挟むという方法が見つかり、実際に試してみると確かに誤作動が解消されました。なおコントローラーに使われているネジはただのプラスネジなので特殊なドライバーを使わずに分解できます。<br>誤作動の原因なんですけど、ボタンのフレキシブル基板の接続にコネクターが使われておらずただ接点を押し付けてあるだけになっていて、そこが接触不良を起こす事によるようです。それでティッシュを挟むことで接続部の圧力が上がって接触不良が解消される、と言うわけですね。……これって設計上の欠陥ですよね？？なおSIXAXISではこのような誤作動は起こった事がなかったんですけど、分解してみるとフレキシブル基板がコネクターで接続されていて、それで接触不良が起きなかったようです。</dd>
+                </dl>
+            </section>
+            <footer>
+                <div class="footer">
+                    <hr>
+                    <a href="/index.html" target="_top">ホームへ戻る</a>
+                </div>
+            </footer>
+        </div>
+    </div>
+</body></html>

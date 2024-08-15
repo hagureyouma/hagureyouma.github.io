@@ -1,0 +1,462 @@
+/*変数*/
+:root {
+    /*フォントサイズ*/
+    --fs-base: 80%;
+    --fs-xxl: 2rem;
+    --fs-xl: 1.5rem;
+    --fs-l: 1.25rem;
+    --fs-m: 1rem;
+    --fs-s: 0.75rem;
+    --fs-xs: 0.5rem;
+
+    /*カラー*/
+    --c-bg: #9b9b9b;
+    --c-main: #fef4f4;
+    --c-accent: #f3a1b8;
+    --c-text: #5d5d5d;
+    --c-highlite: #fdfdfd;
+    --c-alternate: #ededed;
+    --c-caution: #ff0000;
+    --c-a-link: var(--c-text);
+    --c-a-visited: var(--c-bg);
+    --c-a-hover: var(--c-text);
+    --c-a-active: var(--c-accent);
+    --c-hr: var(--c-text);
+
+    /*大きさ設定*/
+    --maincontainer-width: 750px;
+    --illust-menu-width: 300px;
+}
+
+/*共通*/
+html {
+    font-size: var(--fs-base);
+}
+
+body {
+    margin: 0;
+    font-size: var(--fs-m);
+    background-color: var(--c-bg);
+    color: var(--c-text);
+}
+
+h1 {
+    font-size: var(--fs-xxl);
+}
+
+h1.head {
+    margin: 1rem 0;
+}
+
+h1.head::before {
+    font-family: "Font Awesome 5 Free";
+    font-weight: 900;
+    content: "\f6e2";
+    color: var(--c-accent);
+    margin-right: 0.2em;
+}
+
+h2 {
+    font-size: var(--fs-xl);
+}
+
+h2.head {
+    background: var(--c-accent);
+    color: var(--c-text);
+    padding: 0.25em 0.5em;
+    border-radius: 0.5em;
+}
+
+h2.head::before {
+    font-family: "Font Awesome 5 Free";
+    font-weight: 900;
+    content: "\f6e2";
+    color: var(--c-highlite);
+    margin-right: 0.2em;
+}
+
+h3 {
+    font-size: var(--fs-l);
+}
+
+h3.head {}
+
+h3.head::before {
+    font-family: "Font Awesome 5 Free";
+    font-weight: 900;
+    content: "\f6e2";
+    color: var(--c-accent);
+    margin-right: 0.2em;
+}
+
+h4 {
+    font-size: var(--fs-m);
+}
+
+h5 {
+    font-size: var(--fs-s);
+}
+
+h6 {
+    font-size: var(--fs-xs);
+}
+
+strong {
+    font-weight: bold;
+}
+
+small {
+    font-size: var(--fs-s);
+}
+
+span.accent {
+    color: var(--c-accent);
+}
+
+span.caution {
+    color: var(--c-caution);
+}
+
+.caution {}
+
+.caution::before {
+    font-family: "Font Awesome 5 Free";
+    font-weight: 900;
+    content: "\f071";
+    color: var(--c-caution);
+    margin-right: 0.2em;
+}
+
+.caution::after {
+    font-family: "Font Awesome 5 Free";
+    font-weight: 900;
+    content: "\f071";
+    color: var(--c-caution);
+    margin-left: 0.2em;
+}
+
+a:link {
+    color: var(--c-a-link);
+}
+
+a:visited {
+    color: var(--c-a-visited);
+}
+
+a:hover {}
+
+a:active {
+    color: var(--c-a-active);
+}
+
+a.area {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+
+hr {
+    border: none;
+    border-top: 2px dashed var(--c-hr);
+}
+
+.hr-text {
+    margin: 1em 0 0.7em 0;
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+}
+
+.hr-text div {
+    margin-top: 0.3em;
+    content: attr(data-content);
+    font-family: 'Press Start 2P', cursive;
+
+}
+
+.hr-text div::before {
+    position: relative;
+    font-family: "Font Awesome 5 Free";
+    font-weight: 900;
+    content: "\f6e2";
+    color: var(--c-accent);
+    top: -0.2em;
+    margin-right: 0.2em;
+}
+
+.hr-text div::after {
+    position: relative;
+    font-family: "Font Awesome 5 Free";
+    font-weight: 900;
+    content: "\f6e2";
+    color: var(--c-accent);
+    top: -0.2em;
+    margin-right: 0.2em;
+}
+
+.hr-text hr {
+    flex-grow: 1;
+}
+
+.list {}
+
+.list li {
+    list-style-type:none;
+    text-indent: -1.5em;
+}
+
+.list li::before {
+    font-family: "Font Awesome 5 Free";
+    font-weight: 900;
+    content: "\f00c";
+    color: var(--c-accent);
+    margin-right: 0.5em;
+}
+
+.menu {
+    display: inline-block;
+    min-width: 7em;
+    background: var(--c-highlite);
+    margin: 0.5em;
+    padding: 0em 1em 0em 1em;
+    border-radius: 1em;
+    border: dashed 2px var(--c-text);
+    box-shadow: 0 0 0 0.5em var(--c-highlite);
+}
+
+.menu ul li {
+    list-style-type: none;
+    margin-left: -1.5em;
+}
+
+.menu ul li::before {
+    font-family: "Font Awesome 5 Free";
+    font-weight: 900;
+    content: "\f138";
+    color: var(--c-accent);
+    margin-right: 0.5em;
+}
+
+ol {}
+
+ol li {
+    margin: 1em 0em 1em 0em;
+}
+
+dl {}
+
+dt {
+    margin: 1em 0em 1em 1em;
+    font-weight: bold;
+}
+
+dt::before {
+    font-family: "Font Awesome 5 Free";
+    font-weight: 900;
+    content: "\f00c";
+    color: var(--c-accent);
+    margin-right: 0.5em;
+}
+
+dd {
+    margin: 1em 0em 1em 2.5em;
+}
+
+
+table {
+    border-collapse: collapse;
+    min-width: 50%;
+    margin: 1em 0;
+}
+
+table td:first-child {
+    font-weight: bold;
+}
+
+table tr:nth-child(even) {
+    background-color: var(--c-highlite);
+}
+
+table tr:nth-child(odd) {
+    background-color: var(--c-alternate);
+}
+
+table th:first-child {
+    border-radius: 0.5em 0 0 0;
+}
+
+table th:last-child {
+    border-radius: 0 0.5em 0 0;
+}
+
+table th {
+    background: var(--c-accent);
+    color: var(--c-highlite);
+    padding: 0.5em;
+    white-space: nowrap;
+}
+
+table tr:last-child td:first-child {
+    border-radius: 0 0 0 0.5em;
+}
+
+table tr:last-child td:last-child {
+    border-radius: 0 0 0.5em 0;
+}
+
+table td {
+    padding: 0.25em 0.5em;
+}
+
+.maincontainer {
+    margin: 0.5em auto auto;
+    max-width: var(--maincontainer-width);
+    padding: 1em;
+    border-radius: 1.5em;
+    background-color: var(--c-main);
+}
+
+.contents {
+    padding: 0.5em;
+}
+
+.header {
+    min-width: 300px;
+    position: relative;
+    display: flex;
+    flex-wrap: nowrap;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--c-text);
+    color: var(--c-highlite);
+    margin: 0.5em;
+    padding: 0.5em;
+    border-radius: 0.1em;
+    border: dashed 2px var(--c-accent);
+    box-shadow: 0 0 0 0.5em var(--c-text);
+}
+
+.header i {
+    font-size: var(--fs-xxl);
+    color: var(--c-accent);
+    margin: 0 0.5em;
+}
+
+.header h1 {
+    width 100%;
+    font-weight: normal;
+    font-family: 'Press Start 2P', cursive;
+    font-size: var(--fs-xl);
+    margin: 0 0 0.25em;
+    0;
+    text-align: center;
+}
+
+.header p {
+    font-size: var(--fs-s);
+    margin: 0;
+    text-align: center;
+}
+
+@media screen and (max-width:750px) {
+
+    .maincontainer {
+        margin: 0;
+        padding: 0;
+        border-radius: 0.5em;
+    }
+
+    .header {
+        padding: 1vw;
+    }
+
+    .header h1 {
+        font-size: 3vw;
+    }
+
+    .header i {
+        font-size: 4vw;
+    }
+
+    .header p {
+        font-size: 1vw;
+    }
+}
+
+.footer {
+    margin-top: 2em;
+}
+
+.footer a {}
+
+.footer a::before {
+    font-family: "Font Awesome 5 Free";
+    font-weight: 900;
+    content: "\f6e2";
+    color: var(--c-accent);
+    margin-right: 0.2em;
+}
+
+.footer a::after {
+    font-family: "Font Awesome 5 Free";
+    font-weight: 900;
+    content: "\f6e2";
+    color: var(--c-accent);
+    margin-left: 0.2em;
+}
+
+/*画像*/
+
+.illust-menu {
+    position: relative;
+    width: var(--illust-menu-width);
+    height: 100%;
+}
+
+.illust-main {
+    position: absolute;
+    top: 0;
+    right: 0;
+    left: var(--illust-menu-width);
+    width: 840px;
+    height: 100%;
+}
+
+iframe.main {
+    width: 100%;
+    height: 100%;
+}
+
+img.illust {
+    max-width: 300px;
+}
+
+/*ホームページ*/
+.home-menu {
+    display: flex;
+    align-items: center;
+}
+
+.home-menu div {}
+
+.home-menu .icon {
+    flex-basis: 1.5em;
+    text-align: left;
+    color: var(--c-accent);
+}
+
+.home-menu .item {
+    flex-basis: 5em;
+    text-align: left;
+    padding: 0.5em 1em 0.5em 0;
+}
+
+.home-menu .description {
+    flex-grow: 1;
+}
+
+.home-about {
+    display: flex;
+}
