@@ -1,13 +1,13 @@
 /*変数*/
 :root {
     /*フォントサイズ*/
-    --fs-base: 80%;
+    --fs-base: 100%;
     --fs-xxl: 2rem;
-    --fs-xl: 1.5rem;
-    --fs-l: 1.25rem;
-    --fs-m: 1rem;
-    --fs-s: 0.75rem;
-    --fs-xs: 0.5rem;
+    --fs-xl: 1.75rem;
+    --fs-l: 1.5rem;
+    --fs-m: 1.25rem;
+    --fs-s: 1rem;
+    --fs-xs: 0.75rem;
 
     /*カラー*/
     --c-bg: #9b9b9b;
@@ -35,17 +35,44 @@ html {
 
 body {
     margin: 0;
-    font-size: var(--fs-m);
+    font-size: var(--fs-s);
     background-color: var(--c-bg);
     color: var(--c-text);
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    font-weight: normal;
 }
 
 h1 {
     font-size: var(--fs-xxl);
 }
 
+h1.title {
+    margin: 1rem 0;    
+}
+
+h1.title::before {
+    font-family: "Font Awesome 5 Free";
+    font-weight: 900;
+    content: "\f6e2";
+    color: var(--c-accent);
+    margin-right: 0.2em;
+}
+
 h1.head {
-    margin: 1rem 0;
+    background: var(--c-text);
+    color: var(--c-highlite);
+    margin: 0.5em;
+    padding: 0.25em;
+    border-radius: 0.1em;
+    border: dashed 2px var(--c-accent);
+    box-shadow: 0 0 0 0.25em var(--c-text);
 }
 
 h1.head::before {
@@ -79,13 +106,18 @@ h3 {
     font-size: var(--fs-l);
 }
 
-h3.head {}
+h3.head {
+    background: var(--c-accent);
+    color: var(--c-text);
+    padding: 0.25em 0.5em;
+    border-radius: 0.5em;
+}
 
 h3.head::before {
     font-family: "Font Awesome 5 Free";
     font-weight: 900;
     content: "\f6e2";
-    color: var(--c-accent);
+    color: var(--c-highlite);
     margin-right: 0.2em;
 }
 
@@ -203,7 +235,7 @@ hr {
 .list {}
 
 .list li {
-    list-style-type:none;
+    list-style-type: none;
     text-indent: -1.5em;
 }
 
@@ -345,7 +377,7 @@ table td {
 }
 
 .header h1 {
-    width :100%;
+    width: 100%;
     font-weight: normal;
     font-family: 'Press Start 2P', cursive;
     font-size: var(--fs-xl);
