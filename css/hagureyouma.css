@@ -10,7 +10,7 @@
     --fs-xs: 0.75rem;
 
     /*カラー*/
-    --c-bg: #9b9b9b;
+    --c-bg: #807676;
     --c-main: #fef4f4;
     --c-accent: #f3a1b8;
     --c-text: #5d5d5d;
@@ -40,39 +40,13 @@ body {
     color: var(--c-text);
 }
 
-h1,
-h2,
-h3,
-h4,
-h5,
-h6 {
-    font-weight: normal;
-}
-
 h1 {
     font-size: var(--fs-xxl);
 }
 
-h1.title {
-    margin: 1rem 0;    
-}
-
-h1.title::before {
-    font-family: "Font Awesome 5 Free";
-    font-weight: 900;
-    content: "\f6e2";
-    color: var(--c-accent);
-    margin-right: 0.2em;
-}
-
 h1.head {
-    background: var(--c-text);
-    color: var(--c-highlite);
-    margin: 0.25em;
-    padding: 0.25em;
-    border-radius: 0.5em;
-    border: dashed 2px var(--c-accent);
-    box-shadow: 0 0 0 0.25em var(--c-text);
+    margin: 1rem 0;
+    border-bottom: dashed 2px var(--c-text);
 }
 
 h1.head::before {
@@ -90,8 +64,11 @@ h2 {
 h2.head {
     background: var(--c-accent);
     color: var(--c-text);
-    padding: 0.25em 0.5em;
-    border-radius: 0.5em;
+    margin: 0.25em;
+    padding: 0.25em;
+    border-radius: 0.1em;
+    border: dashed 2px var(--c-highlite);
+    box-shadow: 0 0 0 0.25em var(--c-accent);
 }
 
 h2.head::before {
@@ -107,22 +84,28 @@ h3 {
 }
 
 h3.head {
-    background: var(--c-accent);
     color: var(--c-text);
-    padding: 0.25em 0.5em;
-    border-radius: 0.5em;
+    border-bottom: dashed 2px var(--c-accent);
 }
 
 h3.head::before {
     font-family: "Font Awesome 5 Free";
     font-weight: 900;
     content: "\f6e2";
-    color: var(--c-highlite);
+    color: var(--c-accent);
     margin-right: 0.2em;
 }
 
 h4 {
     font-size: var(--fs-m);
+}
+
+h4.head::before {
+    font-family: "Font Awesome 5 Free";
+    font-weight: 900;
+    content: "\f6e2";
+    color: var(--c-accent);
+    margin-right: 0.2em;
 }
 
 h5 {
@@ -258,6 +241,14 @@ hr {
     box-shadow: 0 0 0 0.5em var(--c-highlite);
 }
 
+.menu h3::before {
+    font-family: "Font Awesome 5 Free";
+    font-weight: 900;
+    content: "\f6e2";
+    color: var(--c-accent);
+    margin-right: 0.2em;
+}
+
 .menu ul li {
     list-style-type: none;
     margin-left: -1.5em;
@@ -269,6 +260,27 @@ hr {
     content: "\f138";
     color: var(--c-accent);
     margin-right: 0.5em;
+}
+
+.column{
+    min-width: 7em;
+    background: var(--c-highlite);
+    margin: 0.5em;
+    padding: 0em 1em 0em 1em;
+    border-radius: 1em;
+    border: dashed 2px var(--c-text);
+    box-shadow: 0 0 0 0.5em var(--c-highlite);
+}
+.column h3 {
+    color: var(--c-text);
+    border-bottom: dashed 2px var(--c-accent);
+}
+.column h3::before {
+    font-family: "Font Awesome 5 Free";
+    font-weight: 900;
+    content: "\f6e2";
+    color: var(--c-accent);
+    margin-right: 0.2em;
 }
 
 ol {}
