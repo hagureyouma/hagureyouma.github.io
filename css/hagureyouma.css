@@ -65,7 +65,7 @@ h2.head {
     background: var(--c-accent);
     color: var(--c-text);
     margin: 0.25em;
-    padding: 0.25em;
+    padding: 0em 0.25em;
     border-radius: 0.1em;
     border: dashed 2px var(--c-highlite);
     box-shadow: 0 0 0 0.25em var(--c-accent);
