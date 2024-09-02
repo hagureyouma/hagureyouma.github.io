@@ -64,7 +64,7 @@ h2 {
 h2.head {
     background: var(--c-accent);
     color: var(--c-text);
-    margin: 0.25em;
+    margin: 1em 0.25rem;
     padding: 0em 0.25em;
     border-radius: 0.1em;
     border: dashed 2px var(--c-highlite);
@@ -85,6 +85,7 @@ h3 {
 
 h3.head {
     color: var(--c-text);
+    margin: 1em 0.25rem;
     border-bottom: dashed 2px var(--c-accent);
 }
 
