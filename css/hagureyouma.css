@@ -81,6 +81,7 @@ h2.head::before {
 
 h3 {
     font-size: var(--fs-l);
+    font-weight: normal;
 }
 
 h3.head {
@@ -101,6 +102,9 @@ h4 {
     font-size: var(--fs-m);
 }
 
+h4.head{
+    margin: 1em 0.25rem;
+}
 h4.head::before {
     font-family: "Font Awesome 5 Free";
     font-weight: 900;
@@ -282,6 +286,18 @@ hr {
     content: "\f6e2";
     color: var(--c-accent);
     margin-right: 0.2em;
+}
+.column ul li {
+    list-style-type: none;
+    margin-left: -1.5em;
+}
+
+.column ul li::before {
+    font-family: "Font Awesome 5 Free";
+    font-weight: 900;
+    content: "\f00c";
+    color: var(--c-accent);
+    margin-right: 0.5em;
 }
 
 ol {}
