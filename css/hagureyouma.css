@@ -81,7 +81,6 @@ h2.head::before {
 
 h3 {
     font-size: var(--fs-l);
-    font-weight: normal;
 }
 
 h3.head {
@@ -102,9 +101,10 @@ h4 {
     font-size: var(--fs-m);
 }
 
-h4.head{
+h4.head {
     margin: 1em 0.25rem;
 }
+
 h4.head::before {
     font-family: "Font Awesome 5 Free";
     font-weight: 900;
@@ -267,7 +267,7 @@ hr {
     margin-right: 0.5em;
 }
 
-.column{
+.column {
     min-width: 7em;
     background: var(--c-highlite);
     margin: 0.5em;
@@ -276,10 +276,12 @@ hr {
     border: dashed 2px var(--c-text);
     box-shadow: 0 0 0 0.5em var(--c-highlite);
 }
+
 .column h3 {
     color: var(--c-text);
     border-bottom: dashed 2px var(--c-accent);
 }
+
 .column h3::before {
     font-family: "Font Awesome 5 Free";
     font-weight: 900;
@@ -287,6 +289,7 @@ hr {
     color: var(--c-accent);
     margin-right: 0.2em;
 }
+
 .column ul li {
     list-style-type: none;
     margin-left: -1.5em;
