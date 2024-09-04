@@ -179,7 +179,7 @@ a.area {
 
 hr {
     border: none;
-    border-top: 2px dashed var(--c-hr);
+    border-top: 2px dashed var(--c-accent);
 }
 
 .hr-text {
@@ -270,7 +270,7 @@ hr {
 .column {
     min-width: 7em;
     background: var(--c-highlite);
-    margin: 0.5em;
+    margin: 1rem 0.5rem;
     padding: 0em 1em 0em 1em;
     border-radius: 1em;
     border: dashed 2px var(--c-text);
