@@ -491,6 +491,33 @@ iframe.main {
     width: 100%;
     height: 100%;
 }
+#modal-container {
+	display: none;
+	position: fixed;
+	background: rgba(0, 0, 0, 0.6);
+	top: 0;
+	bottom: 0;
+	left: 0;
+	right: 0;
+	z-index: 99;
+}
+#modal-container > div {
+	display: flex;
+	height: 100vh;
+	justify-content: center;
+	align-items: center;
+}
+#modal-container > div > img {
+	max-width: calc(100vw - 30px);
+	max-height: calc(100vh - 30px);
+}
+img.popup{
+    max-width: 50%;
+    height: auto;
+    display: block;
+    margin: 0 auto;
+    	cursor: pointer;
+}
 
 img.illust {
     max-width: 300px;
