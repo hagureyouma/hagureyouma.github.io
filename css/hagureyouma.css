@@ -1,11 +1,11 @@
 /*変数*/
 :root {
     /*フォントサイズ*/
-    --fs-base: 80%;
-    --fs-xxl: 2rem;
-    --fs-xl: 1.75rem;
-    --fs-l: 1.5rem;
-    --fs-m: 1.25rem;
+    --fs-base: 90%;
+    --fs-xxl: 1.75rem;
+    --fs-xl: 1.5rem;
+    --fs-l: 1.25rem;
+    --fs-m: 1.125rem;
     --fs-s: 1rem;
     --fs-xs: 0.75rem;
 
@@ -102,7 +102,7 @@ h4 {
 }
 
 h4.head {
-    margin: 1em 0.25rem;
+    margin: 0em 0.25rem;
 }
 
 h4.head::before {
@@ -270,7 +270,7 @@ hr {
 .column {
     min-width: 7em;
     background: var(--c-highlite);
-    margin: 1rem 0.5rem;
+    margin: 2rem 0.5rem;
     padding: 0em 1em 0em 1em;
     border-radius: 1em;
     border: dashed 2px var(--c-text);
@@ -279,7 +279,6 @@ hr {
 
 .column h3 {
     color: var(--c-text);
-    border-bottom: dashed 2px var(--c-accent);
 }
 
 .column h3::before {
@@ -334,43 +333,46 @@ table {
     min-width: 50%;
     margin: 1em 0;
 }
-
-table td:first-child {
-    font-weight: bold;
+table.datalist{
+width: 100%;
 }
 
-table tr:nth-child(even) {
+table.datalist td:first-child {
+    font-weight: normal;
+}
+
+table.datalist tr:nth-child(even) {
     background-color: var(--c-highlite);
 }
 
-table tr:nth-child(odd) {
+table.datalist tr:nth-child(odd) {
     background-color: var(--c-alternate);
 }
 
-table th:first-child {
+table.datalist th:first-child {
     border-radius: 0.5em 0 0 0;
 }
 
-table th:last-child {
+table.datalist th:last-child {
     border-radius: 0 0.5em 0 0;
 }
 
-table th {
+table.datalist th {
     background: var(--c-accent);
     color: var(--c-highlite);
     padding: 0.5em;
     white-space: nowrap;
 }
 
-table tr:last-child td:first-child {
+table.datalist tr:last-child td:first-child {
     border-radius: 0 0 0 0.5em;
 }
 
-table tr:last-child td:last-child {
+table.datalist tr:last-child td:last-child {
     border-radius: 0 0 0.5em 0;
 }
 
-table td {
+table.datalist td {
     padding: 0.25em 0.5em;
 }
 
