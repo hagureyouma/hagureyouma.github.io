@@ -137,7 +137,11 @@ span.caution {
     color: var(--c-caution);
 }
 
-.caution {}
+.caution {
+    font-weight: bold;
+    color: var(--c-caution);
+
+}
 
 .caution::before {
     font-family: "Font Awesome 5 Free";
