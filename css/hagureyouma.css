@@ -16,7 +16,7 @@
     --c-text: #5d5d5d;
     --c-highlite: #fdfdfd;
     --c-alternate: #ededed;
-    --c-caution: #ff0000;
+    --c-caution: #d41f1f;
     --c-a-link: var(--c-text);
     --c-a-visited: var(--c-bg);
     --c-a-hover: var(--c-text);
@@ -228,6 +228,7 @@ hr {
 
 .list li {
     list-style-type: none;
+    margin-left: 0em;
     text-indent: -1.5em;
 }
 
@@ -260,7 +261,8 @@ hr {
 
 .menu ul li {
     list-style-type: none;
-    margin-left: -1.5em;
+    margin-left: 0em;
+    text-indent: -1.5em;
 }
 
 .menu ul li::before {
@@ -295,7 +297,8 @@ hr {
 
 .column ul li {
     list-style-type: none;
-    margin-left: -1.5em;
+    margin-left: 0em;
+    text-indent: -1.5em;
 }
 
 .column ul li::before {
