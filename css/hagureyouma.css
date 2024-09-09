@@ -27,7 +27,6 @@
     --maincontainer-width: 750px;
     --illust-menu-width: 300px;
 }
-
 /*共通*/
 html {
     font-size: var(--fs-base);
@@ -86,7 +85,7 @@ h3 {
 h3.head {
     color: var(--c-accent);
     margin: 1em 0.25rem;
-    border-bottom: dashed 2px var(--c-accent);
+    border-bottom: solid 2px var(--c-accent);
 }
 
 h3.head::before {
