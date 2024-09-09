@@ -250,15 +250,6 @@ hr {
     border: dashed 2px var(--c-text);
     box-shadow: 0 0 0 0.5em var(--c-highlite);
 }
-
-.menu h3::before {
-    font-family: "Font Awesome 5 Free";
-    font-weight: 900;
-    content: "\f6e2";
-    color: var(--c-accent);
-    margin-right: 0.2em;
-}
-
 .menu ul li {
     list-style-type: none;
     margin-left: 0em;
