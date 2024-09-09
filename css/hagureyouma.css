@@ -11,10 +11,10 @@
 
     /*カラー*/
     --c-bg: #807676;
-    --c-main: #fef4f4;
-    --c-accent: #f3a1b8;
-    --c-text: #5d5d5d;
-    --c-highlite: #fdfdfd;
+    --c-main: #fffdf4;
+    --c-accent: #ee9aa2;
+    --c-text: #757575;
+    --c-highlite: #fef4f4;
     --c-alternate: #ededed;
     --c-caution: #d41f1f;
     --c-a-link: var(--c-text);
@@ -36,7 +36,7 @@ html {
 body {
     margin: 0;
     font-size: var(--fs-s);
-    background-color: var(--c-bg);
+    background-color: var(--c-text);
     color: var(--c-text);
 }
 
@@ -46,7 +46,7 @@ h1 {
 
 h1.head {
     margin: 1rem 0;
-    border-bottom: dashed 2px var(--c-text);
+    /* border-bottom: dashed 2px var(--c-text); */
 }
 
 h1.head::before {
@@ -63,11 +63,11 @@ h2 {
 
 h2.head {
     background: var(--c-accent);
-    color: var(--c-text);
+    color: var(--c-highlite);
     margin: 1em 0.25rem;
     padding: 0em 0.25em;
     border-radius: 0.1em;
-    border: dashed 2px var(--c-highlite);
+    /* border: dashed 2px var(--c-highlite); */
     box-shadow: 0 0 0 0.25em var(--c-accent);
 }
 
@@ -84,12 +84,24 @@ h3 {
 }
 
 h3.head {
-    color: var(--c-text);
+    color: var(--c-accent);
     margin: 1em 0.25rem;
     border-bottom: dashed 2px var(--c-accent);
 }
 
 h3.head::before {
+    font-family: "Font Awesome 5 Free";
+    font-weight: 900;
+    content: "\f6e2";
+    color: var(--c-accent);
+    margin-right: 0.2em;
+}
+h3.topic{
+    color: var(--c-accent);
+    margin: 1em 0.25rem;
+    /* border-bottom: dashed 2px var(--c-accent); */
+}
+h3.topic::before {
     font-family: "Font Awesome 5 Free";
     font-weight: 900;
     content: "\f6e2";
@@ -183,7 +195,7 @@ a.area {
 
 hr {
     border: none;
-    border-top: 2px dashed var(--c-accent);
+    border-top: 2px dashed var(--c-text);
 }
 
 .hr-text {
@@ -243,12 +255,12 @@ hr {
 .menu {
     display: inline-block;
     min-width: 7em;
-    background: var(--c-highlite);
-    margin: 0.5em;
+    /* background: var(--c-highlite); */
+    margin: 1em;
     padding: 0em 1em 0em 1em;
     border-radius: 1em;
-    border: dashed 2px var(--c-text);
-    box-shadow: 0 0 0 0.5em var(--c-highlite);
+    border: dashed 2px var(--c-accent);
+    /* box-shadow: 0 0 0 0.5em var(--c-highlite); */
 }
 .menu ul li {
     list-style-type: none;
