@@ -1,7 +1,10 @@
+/*フォント*/
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c&display=swap');
 /*変数*/
 :root {
     /*フォントサイズ*/
-    --fs-base: 90%;
+    --fs-base: 100%;    
     --fs-xxl: 1.75rem;
     --fs-xl: 1.5rem;
     --fs-l: 1.25rem;
@@ -10,10 +13,11 @@
     --fs-xs: 0.75rem;
 
     /*カラー*/
-    --c-bg: #807676;
+    --c-bg: #f4dddc;
     --c-main: #fffdf4;
-    --c-accent: #ee9aa2;
-    --c-text: #795f46;
+    --c-frame:#f5f3f3;
+    --c-accent: #de858c;
+    --c-text: #221a18;       
     --c-highlite: #fef4f4;
     --c-alternate: #ededed;
     --c-caution: #d41f1f;
@@ -35,8 +39,12 @@ html {
 body {
     margin: 0;
     font-size: var(--fs-s);
-    background-color: var(--c-text);
-    color: var(--c-text);
+    background-color: var(--c-bg);
+    color: var(--c-text);    
+}
+
+h1,h2,h3,h4,h5,h6{
+    font-family: "M PLUS Rounded 1c", sans-serif;
 }
 
 h1 {
