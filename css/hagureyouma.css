@@ -27,6 +27,7 @@
     --maincontainer-width: 750px;
     --illust-menu-width: 300px;
 }
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Zen+Kaku+Gothic+New&display=swap');
 /*共通*/
 html {
     font-size: var(--fs-base);
