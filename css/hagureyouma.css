@@ -11,7 +11,7 @@
     --fs-l: 1.25rem;
     --fs-m: 1.125rem;
     --fs-s: 1rem;
-    --fs-xs: 0.75rem;
+    --fs-xs: 0.85rem;
 
     /*カラー*/
     --c-bg: #f4dddc;
@@ -21,7 +21,7 @@
     --c-column: #f5f3f3;
     --c-caution: #d41f1f;
     --c-a-link: var(--c-text);
-    --c-a-visited: var(--c-bg);
+    --c-a-visited: var(--c-accent);
     --c-a-hover: var(--c-text);
     --c-a-active: var(--c-accent);
     --c-hr: var(--c-text);
@@ -57,7 +57,12 @@ h1 {
     margin: 1rem 0;
 }
 
-h1::before {
+h1::before,
+h2::before,
+h3::before,
+h4::before,
+h5::before,
+h6::before {
     font-family: "Font Awesome 5 Free";
     font-weight: 900;
     content: "\f6e2";
@@ -75,43 +80,15 @@ h2 {
     box-shadow: 0 0 0 0.25em var(--c-text);
 }
 
-h2::before {
-    font-family: "Font Awesome 5 Free";
-    font-weight: 900;
-    content: "\f6e2";
-    color: var(--c-accent);
-    margin-right: 0.2em;
-}
-
 h3 {
     font-size: var(--fs-l);
-}
-
-h3 {
     color: var(--c-accent);
     margin: 1em 0.25rem;
     border-bottom: dashed 2px var(--c-accent);
 }
 
-h3::before {
-    font-family: "Font Awesome 5 Free";
-    font-weight: 900;
-    content: "\f6e2";
-    color: var(--c-accent);
-    margin-right: 0.2em;
-}
-
 h4 {
     font-size: var(--fs-m);
-    margin: 0em 0.25rem;
-}
-
-h4::before {
-    font-family: "Font Awesome 5 Free";
-    font-weight: 900;
-    content: "\f6e2";
-    color: var(--c-accent);
-    margin-right: 0.2em;
 }
 
 h5 {
@@ -133,26 +110,20 @@ small {
 .accent {
     color: var(--c-accent);
 }
+
 .caution {
     font-weight: bold;
     color: var(--c-caution);
 
 }
 
-.caution::before {
-    font-family: "Font Awesome 5 Free";
-    font-weight: 900;
-    content: "\f071";
-    color: var(--c-caution);
-    margin-right: 0.2em;
-}
-
+.caution::before,
 .caution::after {
     font-family: "Font Awesome 5 Free";
     font-weight: 900;
     content: "\f071";
     color: var(--c-caution);
-    margin-left: 0.2em;
+    margin-right: 0.2em;
 }
 
 a:link {
@@ -221,15 +192,14 @@ hr {
     border-top: 2px dashed var(--c-text);
 }
 
-.list {}
-
-.list li {
+li {
     list-style-type: none;
     margin-left: 0em;
     text-indent: -1.5em;
 }
 
-.list li::before {
+li::before,
+dt::before {
     font-family: "Font Awesome 5 Free";
     font-weight: 900;
     content: "\f00c";
@@ -237,111 +207,85 @@ hr {
     margin-right: 0.5em;
 }
 
-.menu {
+.menu,
+.column {
     display: inline-block;
     min-width: 7em;
     background: var(--c-column);
-    margin: 2em 0em 1em 0em;    
+    margin: 2em 0em 2em 0em;
     padding: 0em 1em 0em 1em;
     border-radius: 1em;
     border: dashed 2px var(--c-text);
     box-shadow: 0 0 0 0.5em var(--c-column);
 }
-.menu h3{
+
+.menu h3,
+.column h3 {
     border-bottom: none;
-    color: var(--c-text); 
+    color: var(--c-text);
 }
-.menu h3::before{
+
+.menu h3::before {
     content: "\f0ca";
 }
 
-.menu ul li {
-    list-style-type: none;
-    margin-left: 0em;
-    text-indent: -1.5em;
-}
-
 .menu ul li::before {
-    font-family: "Font Awesome 5 Free";
-    font-weight: 900;
     content: "\f138";
-    color: var(--c-accent);
-    margin-right: 0.5em;
-}
-
-.topic{
-margin-bottom: 3em;   
-}
-.topic h3{
-    background: var(--c-accent);
-    color: var(--c-main);
-    padding: 0em 0.25em;
-    border-radius: 0.1em;
-    box-shadow: 0 0 0 0.25em var(--c-accent);   
-    border-bottom: none;
-}
-
-.topic h3::before {
-    color: var(--c-main);
 }
 
 .column {
-    min-width: 7em;
-    background: var(--c-column);
-    margin: 2rem 0.5rem;
-    padding: 0em 1em 0em 1em;
-    border-radius: 1em;
-    border: dashed 2px var(--c-text);
-    box-shadow: 0 0 0 0.5em var(--c-column);
-}
-
-.column h3 {
-    color: var(--c-text);
-    border-bottom: none;
+    display: block;
 }
 
 .column h3::before {
-    font-family: "Font Awesome 5 Free";
-    font-weight: 900;
-    content: "\f6e2";
-    color: var(--c-accent);
-    margin-right: 0.2em;
+    content: "\f6b7";
 }
 
-.column ul li {
-    list-style-type: none;
-    margin-left: 0em;
-    text-indent: -1.5em;
+.topic {
+    padding: 0em 0em 0.1em 0em;
+    background-color: var(--c-column);
+    border-radius: 0.2em;
+    box-shadow: 0 0 0 0.25em var(--c-column);
+    margin: 1.5em auto;
 }
 
-.column ul li::before {
-    font-family: "Font Awesome 5 Free";
-    font-weight: 900;
-    content: "\f00c";
-    color: var(--c-accent);
-    margin-right: 0.5em;
+.topic h4 {
+    background: var(--c-accent);
+    color: var(--c-main);
+    margin: 0em 0rem;
+    padding: 0em 0.25em;
+    border-top-left-radius: 0.2em;
+    border-top-right-radius: 0.2em;
+    box-shadow: 0 0 0 0.25em var(--c-accent);
 }
 
-.bubble{
+.topic h4::before {
+    content: "\f520";
+    color: var(--c-main);
+}
+
+.bubble {
     min-width: 10em;
     display: inline-block;
     position: relative;
-    background: var(--c-bg); 
-    margin: 1em 0em 1em 5em;    
+    background: var(--c-bg);
+    margin: 1em 0em 1em 5em;
     padding: 1.5em 1.5em;
     border-radius: 1em;
 }
-.bubble::after{
+
+.bubble::after {
     position: absolute;
     font-family: "Font Awesome 5 Free";
     font-weight: 900;
-    font-size: 3rem;    
+    font-size: 3rem;
     content: "\f6e2";
     color: var(--c-accent);
-    top:0.57rem;    
+    top: 0.57rem;
     left: -4rem;
 }
-.bubble::before{
+
+.bubble::before {
     content: "";
     position: absolute;
     top: 1.5em;
@@ -363,14 +307,6 @@ dl {}
 dt {
     margin: 1em 0em 1em 1em;
     font-weight: bold;
-}
-
-dt::before {
-    font-family: "Font Awesome 5 Free";
-    font-weight: 900;
-    content: "\f00c";
-    color: var(--c-accent);
-    margin-right: 0.5em;
 }
 
 dd {
@@ -559,19 +495,19 @@ iframe.main {
     z-index: 99;
 }
 
-#modal-container>div {
+#modal-container div {
     display: flex;
     height: 100vh;
     justify-content: center;
     align-items: center;
 }
 
-#modal-container>div>img {
+#modal-container div img {
     max-width: calc(100vw - 30px);
     max-height: calc(100vh - 30px);
 }
 
-.popup>img {
+.popup img {
     max-width: 50%;
     height: auto;
     display: block;
@@ -579,9 +515,10 @@ iframe.main {
     cursor: pointer;
 }
 
-.popup>p {
+.popup p {
     text-align: center;
-    margin-top: 0.5rem;
+    margin-top: 0.25rem;
+    font-size: var(--fs-xs);   
 }
 
 img.illust {
