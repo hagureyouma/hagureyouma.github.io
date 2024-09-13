@@ -245,7 +245,7 @@ dt::before {
     background-color: var(--c-column);
     border-radius: 0.2em;
     box-shadow: 0 0 0 0.25em var(--c-column);
-    margin: 2em 0em;
+    margin: 1.5em 0em;
 }
 
 .topic h4 {
@@ -268,7 +268,7 @@ dt::before {
     background-color: var(--c-column);
     border-radius: 0.2em;
     box-shadow: 0 0 0 0.25em var(--c-column);
-    margin: 2em 0em;
+    margin: 1.5em 0em;
 }
 
 .topic2 h4 {
@@ -287,8 +287,8 @@ dt::before {
     display: inline-block;
     position: relative;
     background: var(--c-column);
-    margin: 1em 0em 1em 5em;
-    padding: 0.5em 1.5em;
+    margin: 0.5em 0.5em 1em 5em;
+    padding: 1em 1.5em;
     border-radius: 1em;
 }
 
@@ -306,7 +306,7 @@ dt::before {
 .bubble::before {
     content: "";
     position: absolute;
-    top: 1.5em;
+    top: 1em;
     left: -1.5em;
     border-top: 0.75em solid transparent;
     border-right: 0.75em solid var(--c-column);
