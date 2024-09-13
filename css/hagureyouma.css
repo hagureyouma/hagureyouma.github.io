@@ -83,7 +83,6 @@ h2 {
 h3 {
     font-size: var(--fs-l);
     color: var(--c-accent);
-    margin: 1em 0.25rem;
     border-bottom: dashed 2px var(--c-accent);
 }
 
@@ -246,7 +245,7 @@ dt::before {
     background-color: var(--c-column);
     border-radius: 0.2em;
     box-shadow: 0 0 0 0.25em var(--c-column);
-    margin: 1.5em auto;
+    margin: 2em 0em;
 }
 
 .topic h4 {
@@ -264,13 +263,32 @@ dt::before {
     color: var(--c-main);
 }
 
+.topic2 {
+    padding: 0.5em;
+    background-color: var(--c-column);
+    border-radius: 0.2em;
+    box-shadow: 0 0 0 0.25em var(--c-column);
+    margin: 2em 0em;
+}
+
+.topic2 h4 {
+    margin: 0em 0rem;
+    padding: 0em 0.25em;
+    border-bottom: dashed 2px var(--c-accent);
+}
+
+.topic2 h4::before {
+    content: "\f520";
+    color: var(--c-accent);
+}
+
 .bubble {
     min-width: 10em;
     display: inline-block;
     position: relative;
-    background: var(--c-bg);
+    background: var(--c-column);
     margin: 1em 0em 1em 5em;
-    padding: 1.5em 1.5em;
+    padding: 0.5em 1.5em;
     border-radius: 1em;
 }
 
@@ -291,7 +309,7 @@ dt::before {
     top: 1.5em;
     left: -1.5em;
     border-top: 0.75em solid transparent;
-    border-right: 0.75em solid var(--c-bg);
+    border-right: 0.75em solid var(--c-column);
     border-left: 0.75em solid transparent;
     border-bottom: 0.75em solid transparent;
 }
@@ -518,7 +536,7 @@ iframe.main {
 .popup p {
     text-align: center;
     margin-top: 0.25rem;
-    font-size: var(--fs-xs);   
+    font-size: var(--fs-xs);
 }
 
 img.illust {
