@@ -113,7 +113,7 @@ small {
 .caution {
     font-weight: bold;
     color: var(--c-caution);
-
+    text-align: center;
 }
 
 .caution::before,
