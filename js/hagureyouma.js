@@ -12,10 +12,10 @@ modal.addEventListener('click', () => modal.style.display = 'none');
 //もくじ自動生成
 const hs = document.querySelectorAll('h2');
 if (hs.length > 1) {
-	let cont='';
-	hs.forEach((h,i)=>{
-		cont+=`<li><a href="#head${i}">${h.textContent}</a></li>`;
-		h.innerHTML+=`<a id="head${i}"></a>`;
+	let cont = '';
+	hs.forEach((h, i) => {
+		cont += `<li><a href="#head${i}">${h.textContent}</a></li>`;
+		h.insertAdjacentHTML('afterbegin',`<a id="head${i}"></a>`);
 	});
-	document.querySelector('nav').innerHTML=`<div class="menu"><h3 class="head">目次</h3><ul>${cont}</ul></div>`;
+	document.querySelector('nav').innerHTML = `<div class="menu"><h3 class="head">目次</h3><ul>${cont}</ul></div>`;
 }
