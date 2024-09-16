@@ -19,7 +19,16 @@
     --c-text: #545454;
     --c-accent: #de858c;
     --c-column: #f5f3f3;
-    --c-caution: #d41f1f;
+    --c-caution: #e24141;
+    --c-red: #dc143c;
+    --c-green: #008000;
+    --c-blue: #0000ff;
+    --c-cyan: #00ffff;
+    --c-yellow: #ffff00;
+    --c-purple: #800080;
+    --c-gray: #808080;
+    --c-black:#000000;
+    --c-white:#ffffff;
     --c-a-link: var(--c-text);
     --c-a-visited: var(--c-accent);
     --c-a-hover: var(--c-text);
@@ -336,9 +345,42 @@ table {
     min-width: 50%;
     margin: 1em 0;
 }
-
+table .red{
+    background-color: var(--c-red);
+    color: var(--c-white);
+    text-align: center;
+}
+table .green{
+    background-color: var(--c-green);
+    color: var(--c-white);
+    text-align: center;
+}
+table .blue{
+    background-color: var(--c-blue);
+    color: var(--c-white);
+    text-align: center;
+}
+table .cyan{
+    background-color: var(--c-cyan);
+    text-align: center;
+}
+table .yellow{
+    background-color: var(--c-yellow);
+    text-align: center;
+}
+table .purple{
+    background-color: var(--c-purple);
+    color: var(--c-white);
+    text-align: center;
+}
+table .gray{
+    background-color: var(--c-gray);
+        color: var(--c-white);
+    text-align: center;
+}
 .datalist {
     width: 100%;
+    table-layout:fixed;
 }
 
 .datalist td:first-child {

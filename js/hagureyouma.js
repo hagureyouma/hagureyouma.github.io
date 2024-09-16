@@ -11,7 +11,7 @@ modal.addEventListener('click', () => modal.style.display = 'none');
 
 //もくじ自動生成
 const hs = document.querySelectorAll('h2');
-if (hs.length > 1) {
+if (hs.length > 0) {
 	let cont = '';
 	hs.forEach((h, i) => {
 		cont += `<li><a href="#head${i}">${h.textContent}</a></li>`;
