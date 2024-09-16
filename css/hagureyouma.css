@@ -323,6 +323,14 @@ dt::before {
     border-bottom: 0.75em solid transparent;
 }
 
+.arrow {
+    display: inline-block;
+    width: 100px;
+    height: 73.5px;
+    background: #000000;
+    clip-path: polygon(0 31%, 63.2% 31%, 63.2% 0, 100% 50%, 63.2% 100%, 63.2% 69%, 0 69%);
+  }
+
 ol {}
 
 ol li {
