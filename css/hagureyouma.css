@@ -299,7 +299,7 @@ dt::before {
     font-size: 3rem;
     content: "\f6e2";
     color: var(--c-accent);
-    top: 0.57rem;
+    top: 0.25rem;
     left: -4rem;
 }
 
