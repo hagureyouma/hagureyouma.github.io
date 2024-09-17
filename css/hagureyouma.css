@@ -1,6 +1,7 @@
 /*フォント*/
 @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c&display=swap');
+@import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css');
 
 /*変数*/
 :root {
@@ -27,8 +28,8 @@
     --c-yellow: #ffff00;
     --c-purple: #800080;
     --c-gray: #808080;
-    --c-black:#000000;
-    --c-white:#ffffff;
+    --c-black: #000000;
+    --c-white: #ffffff;
     --c-a-link: var(--c-text);
     --c-a-visited: var(--c-accent);
     --c-a-hover: var(--c-text);
@@ -323,13 +324,106 @@ dt::before {
     border-bottom: 0.75em solid transparent;
 }
 
-.arrow {
+.arrow-left::after {
+    font-family: "Font Awesome 5 Free";
+    font-weight: 900;
+    content: "\f104";
+    font-size: 1.5em;
+}
+
+.arrow-right::after {
+    font-family: "Font Awesome 5 Free";
+    font-weight: 900;
+    content: "\f105";
+    font-size: 1.5em;
+}
+
+.arrow-up::after {
+    font-family: "Font Awesome 5 Free";
+    font-weight: 900;
+    content: "\A\f106";
+    font-size: 1.5em;
+    white-space: pre;
+}
+
+.arrow-down::after {
+    font-family: "Font Awesome 5 Free";
+    font-weight: 900;
+    content: "\A\f107";
+    font-size: 1.5em;
+    white-space: pre;
+}
+
+.flow {
+    width: 100%;
+    table-layout: fixed;    
+}
+
+.flow td{
+    text-align: center;
+    vertical-align: middle;
+    white-space: nowrap;
+    position: relative;
+    height: 4em;
+}
+
+.flow .lines {
+    display: flex;
+    position: relative;
+
+}
+
+.flow .container {
+    position: relative;
+    width: 100%;
+    background-color: #de858c;
+    border: 1px solid #000000;
+    text-align: center;
+}
+.flow .oval {
+    position: relative;
+    z-index: 2;
     display: inline-block;
-    width: 100px;
-    height: 73.5px;
-    background: #000000;
-    clip-path: polygon(0 31%, 63.2% 31%, 63.2% 0, 100% 50%, 63.2% 100%, 63.2% 69%, 0 69%);
-  }
+     background: var(--c-column); 
+    border-radius: 0.5rem;
+    padding: 0.5em;
+    text-align: center;
+    margin: 0.5em; 
+    border: 1px solid #000000;
+}
+
+.flow td div:not(.oval) {
+    position: absolute;
+    z-index: 1;   
+    left: 50%;
+    top: 2rem;    
+    color: var(--c-bg);
+    background-color: var(--c-text);
+    margin: auto;
+}
+
+.flow .line1{
+    width: 2px;
+    height: 32em; 
+}
+
+.flow .line-v1{
+    width: 100%;
+    height: 2px;
+}
+.flow .line2{
+    width: 2px;
+    height: 24em; 
+}
+
+.flow .down {
+    font-size: 0;
+    width: 2px;
+    height: 2rem;
+    color: var(--c-bg);
+    background-color: var(--c-text);
+    margin: auto;
+}
 
 ol {}
 
@@ -353,42 +447,50 @@ table {
     min-width: 50%;
     margin: 1em 0;
 }
-table .red{
+
+table .red {
     background-color: var(--c-red);
     color: var(--c-white);
     text-align: center;
 }
-table .green{
+
+table .green {
     background-color: var(--c-green);
     color: var(--c-white);
     text-align: center;
 }
-table .blue{
+
+table .blue {
     background-color: var(--c-blue);
     color: var(--c-white);
     text-align: center;
 }
-table .cyan{
+
+table .cyan {
     background-color: var(--c-cyan);
     text-align: center;
 }
-table .yellow{
+
+table .yellow {
     background-color: var(--c-yellow);
     text-align: center;
 }
-table .purple{
+
+table .purple {
     background-color: var(--c-purple);
     color: var(--c-white);
     text-align: center;
 }
-table .gray{
+
+table .gray {
     background-color: var(--c-gray);
-        color: var(--c-white);
+    color: var(--c-white);
     text-align: center;
 }
+
 .datalist {
     width: 100%;
-    table-layout:fixed;
+    table-layout: fixed;
 }
 
 .datalist td:first-child {
@@ -396,11 +498,11 @@ table .gray{
 }
 
 .datalist tr:nth-child(even) {
-    background-color: var(--c-column);
+    background-color: var(--c-main);
 }
 
 .datalist tr:nth-child(odd) {
-    background-color: var(--c-main);
+    background-color: var(--c-column);
 }
 
 .datalist th:first-child {
