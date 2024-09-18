@@ -203,17 +203,45 @@ hr {
 
 li {
     list-style-type: none;
-    margin-left: 0em;
-    text-indent: -1.5em;
+    position: relative;
+
 }
 
 li::before,
 dt::before {
     font-family: "Font Awesome 5 Free";
     font-weight: 900;
-    content: "\f00c";
+
     color: var(--c-accent);
-    margin-right: 0.5em;
+    position: absolute;
+}
+
+li::before {
+    content: "\f00c";
+    top: 0.15em;
+    left: -1.5em;
+}
+
+dt::before {
+    content: "\f520";
+    top: 0.19em;
+    left: 1em;
+}
+
+ol li {
+    margin: 1em 0em 1em 0em;
+}
+
+dl {}
+
+dt {
+    font-weight: bold;
+    position: relative;
+    padding-left: 2.5em;
+}
+
+dd {
+    margin-top: 1em;
 }
 
 .menu,
@@ -324,112 +352,106 @@ dt::before {
     border-bottom: 0.75em solid transparent;
 }
 
-.arrow-left::after {
-    font-family: "Font Awesome 5 Free";
-    font-weight: 900;
-    content: "\f104";
-    font-size: 1.5em;
-}
-
-.arrow-right::after {
-    font-family: "Font Awesome 5 Free";
-    font-weight: 900;
-    content: "\f105";
-    font-size: 1.5em;
-}
-
-.arrow-up::after {
-    font-family: "Font Awesome 5 Free";
-    font-weight: 900;
-    content: "\A\f106";
-    font-size: 1.5em;
-    white-space: pre;
-}
-
-.arrow-down::after {
-    font-family: "Font Awesome 5 Free";
-    font-weight: 900;
-    content: "\A\f107";
-    font-size: 1.5em;
-    white-space: pre;
-}
-
 .flow {
     width: 100%;
-    font-size: min(2vw,var(--fs-s));
+    font-size: min(2vw, var(--fs-s));
+    border-spacing: 0;
+    table-layout: fixed;
 }
 
-.flow td{
+.flow td {
     text-align: center;
     vertical-align: middle;
     white-space: nowrap;
     position: relative;
     height: 4em;
+    padding: 0;
+}
+
+.flow .arrow-right::before {
+    content: "";
+    position: absolute;
+    display: block;
+    width: 0;
+    height: 0;
+    top: 1.5em;
+    left: 0.1em;
+    border-style: solid;
+    border-width: 0.5em 1em 0.5em;
+    border-color: transparent transparent transparent var(--c-text);
 }
 
 .flow .oval {
     position: relative;
     z-index: 2;
-    display: inline-block;
-     /* background: var(--c-column);  */
+    background: var(--c-column);
     border-radius: 0.5rem;
     padding: 0.5em;
-    margin: 0.5em; 
-    border: 1px solid #000000;
+    margin: 0.5em 1em;
+    border: 1px solid var(--c-text);
 }
 
 .flow td div:not(.oval) {
     position: absolute;
-    z-index: 1;   
-    left: 0;
-    right: 0;
-    top: 50%;   
+    z-index: 1;
     color: var(--c-bg);
     background-color: var(--c-text);
     margin: auto;
 }
 
-.flow .line1{
+.flow .line1 {
     width: 2px;
-    height: 32em;    
+    height: 32em;
+    top: 50%;
+    left: 0;
+    right: 0;
 }
-.flow .line2{
+
+.flow .line2 {
     width: 2px;
-    height: 21em; 
+    height: 20em;
+    top: 50%;
+    left: 0;
+    right: 0;
 }
-.flow .line3{
+
+.flow .line3 {
     width: 2px;
-    height: 21em;     
+    height: 20em;
+    top: 50%;
+    left: 0;
+    right: 0;
 }
-.flow .line-v1{
+
+.flow .line4 {
+    width: 2px;
+    height: 8em;
+    top: 50%;
+    left: 25%;
+}
+
+.flow .line-v1 {
     width: 100%;
     height: 2px;
+    left: 50%;
+    top: 0;
+    bottom: 0;
 }
-.flow .line-v2{
+
+.flow .line-v2 {
     width: 200%;
     height: 2px;
-}
-ol {}
-
-ol li {
-    margin: 1em 0em 1em 0em;
+    left: 50%;
+    top: 0;
+    bottom: 0;
 }
 
-dl {}
-
-dt {
-    margin: 1em 0em 1em 1em;
-    font-weight: bold;
-}
-
-dd {
-    margin: 1em 0em 1em 2.5em;
-}
-
-table {
-    border-collapse: collapse;
-    min-width: 50%;
-    margin: 1em 0;
+.flow .line-v3 {
+    width: 75%;
+    height: 2px;
+    left: 50.5%;
+    top: 0;
+    bottom: 0;
 }
 
 table .red {
@@ -473,6 +495,8 @@ table .gray {
 }
 
 .datalist {
+    border-collapse: collapse;
+    margin: 1em 0;
     width: 100%;
     table-layout: fixed;
 }
@@ -522,6 +546,25 @@ table .gray {
     padding: 1em;
     border-radius: 1.5em;
     background-color: var(--c-main);
+}
+
+details {}
+
+summary {
+    cursor: pointer;
+    position: relative;
+    list-style: none;
+    background-color: var(--c-text);
+    color: var(--c-main);
+    border-radius: 0.4em;
+    padding: 0em 0.25em;
+}
+summary::before {
+    font-family: "Font Awesome 5 Free";
+    font-weight: 900;
+    content: "\f071";
+    color: var(--c-accent);
+    margin-right: 0.2em;
 }
 
 .contents {
