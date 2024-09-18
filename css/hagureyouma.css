@@ -622,7 +622,7 @@ details[open] summary::before{
     }
 
     .header {
-        padding: 1vw;
+        padding: 2vw;
     }
 
     .header h1 {
@@ -634,7 +634,7 @@ details[open] summary::before{
     }
 
     .header p {
-        font-size: 1vw;
+        font-size: 2vw;
     }
 }
 
