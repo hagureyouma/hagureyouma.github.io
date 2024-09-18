@@ -242,6 +242,7 @@ dt {
 
 dd {
     margin-top: 1em;
+    margin-bottom:1em;    
 }
 
 .menu,
@@ -548,23 +549,23 @@ table .gray {
     background-color: var(--c-main);
 }
 
-details {}
-
 summary {
     cursor: pointer;
-    position: relative;
     list-style: none;
     background-color: var(--c-text);
     color: var(--c-main);
     border-radius: 0.4em;
-    padding: 0em 0.25em;
+    padding: 0.25em 0.5em;    
 }
 summary::before {
     font-family: "Font Awesome 5 Free";
     font-weight: 900;
-    content: "\f071";
+    content: "\f107";
     color: var(--c-accent);
     margin-right: 0.2em;
+}
+details[open] summary::before{
+    content: "\f106";
 }
 
 .contents {
