@@ -17,7 +17,7 @@
     /*カラー*/
     --c-bg: #f4dddc;
     --c-main: #ffffff;
-    --c-text: #545454;
+    --c-text: #454545;
     --c-accent: #de858c;
     --c-column: #f5f3f3;
     --c-caution: #e24141;
@@ -53,6 +53,18 @@ body {
     color: var(--c-text);
 }
 
+.maincontainer {
+    margin: 0.5em auto auto;
+    max-width: var(--maincontainer-width);
+    padding: 1rem;
+    border-radius: 1.5em;
+    background-color: var(--c-main);
+}
+
+.contents {
+    padding: 0.5em;
+}
+
 h1,
 h2,
 h3,
@@ -77,14 +89,13 @@ h6::before {
     font-weight: 900;
     content: "\f6e2";
     color: var(--c-accent);
-    margin-right: 0.2em;
+    margin: 0 0.1em;
 }
 
 h2 {
     font-size: var(--fs-xl);
     background: var(--c-text);
     color: var(--c-main);
-    margin: 1em 0.25rem;
     padding: 0em 0.25em;
     border-radius: 0.1em;
     box-shadow: 0 0 0 0.25em var(--c-text);
@@ -163,7 +174,7 @@ hr {
 }
 
 .hr-text {
-    margin: 1em 0 0.7em 0;
+    margin: 1em 0em 0.7em 0em;
     display: flex;
     flex-wrap: nowrap;
     align-items: center;
@@ -173,7 +184,6 @@ hr {
     margin-top: 0.3em;
     content: attr(data-content);
     font-family: 'Press Start 2P', cursive;
-
 }
 
 .hr-text div::before {
@@ -211,7 +221,6 @@ li::before,
 dt::before {
     font-family: "Font Awesome 5 Free";
     font-weight: 900;
-
     color: var(--c-accent);
     position: absolute;
 }
@@ -242,16 +251,16 @@ dt {
 
 dd {
     margin-top: 1em;
-    margin-bottom:1em;    
+    margin-bottom: 1em;
 }
 
 .menu,
 .column {
     display: inline-block;
-    min-width: 7em;
+    min-width: 10em;
     background: var(--c-column);
-    margin: 2em 0em 2em 0em;
-    padding: 0em 1em 0em 1em;
+    margin: 1em 0;
+    padding: 0em 1em;
     border-radius: 1em;
     border: dashed 2px var(--c-text);
     box-shadow: 0 0 0 0.5em var(--c-column);
@@ -497,7 +506,6 @@ table .gray {
 
 .datalist {
     border-collapse: collapse;
-    margin: 1em 0;
     width: 100%;
     table-layout: fixed;
 }
@@ -541,22 +549,15 @@ table .gray {
     padding: 0.25em 0.5em;
 }
 
-.maincontainer {
-    margin: 0.5em auto auto;
-    max-width: var(--maincontainer-width);
-    padding: 1em;
-    border-radius: 1.5em;
-    background-color: var(--c-main);
-}
-
 summary {
     cursor: pointer;
     list-style: none;
     background-color: var(--c-text);
     color: var(--c-main);
     border-radius: 0.4em;
-    padding: 0.25em 0.5em;    
+    padding: 0.25em 0.5em;
 }
+
 summary::before {
     font-family: "Font Awesome 5 Free";
     font-weight: 900;
@@ -564,12 +565,9 @@ summary::before {
     color: var(--c-accent);
     margin-right: 0.2em;
 }
-details[open] summary::before{
-    content: "\f106";
-}
 
-.contents {
-    padding: 0.5em;
+details[open] summary::before {
+    content: "\f106";
 }
 
 .header {
@@ -581,7 +579,6 @@ details[open] summary::before{
     align-items: center;
     background: var(--c-text);
     color: var(--c-main);
-    margin: 0.5em;
     padding: 0.5em;
     border-radius: 0.1em;
     border: dashed 2px var(--c-accent);
@@ -613,12 +610,32 @@ details[open] summary::before{
     text-align: center;
 }
 
+footer {
+    padding-bottom: 0.5em;
+}
+
+footer a::before {
+    font-family: "Font Awesome 5 Free";
+    font-weight: 900;
+    content: "\f6e2";
+    color: var(--c-accent);
+    margin-right: 0.2em;
+}
+
+footer a::after {
+    font-family: "Font Awesome 5 Free";
+    font-weight: 900;
+    content: "\f6e2";
+    color: var(--c-accent);
+    margin-left: 0.2em;
+}
+
 @media screen and (max-width:750px) {
 
     .maincontainer {
         margin: 0;
         padding: 0;
-        border-radius: 0.5em;
+        border-radius: 0em;
     }
 
     .header {
@@ -638,27 +655,6 @@ details[open] summary::before{
     }
 }
 
-.footer {
-    margin-top: 2em;
-}
-
-.footer a {}
-
-.footer a::before {
-    font-family: "Font Awesome 5 Free";
-    font-weight: 900;
-    content: "\f6e2";
-    color: var(--c-accent);
-    margin-right: 0.2em;
-}
-
-.footer a::after {
-    font-family: "Font Awesome 5 Free";
-    font-weight: 900;
-    content: "\f6e2";
-    color: var(--c-accent);
-    margin-left: 0.2em;
-}
 
 /*画像*/
 

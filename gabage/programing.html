@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+  <link href="css/prism.css" rel="stylesheet" />
+</head>
+<body>
+<h1>C#とDXライブラリでPCゲーム作るよ</h1>
+<h2>もくじ</h2>
+<p><a href="#INTRO">はじめに</a></p>
+<p><a href="#VC">Visual Studio 2017 Communityのこと</a></p>
+<p><a href="#C#">C#のこと</a></p>
+<p><a href="#DXL">DXライブラリのこと</a></p>
+<p><a href="#LINK">お役立ちリンク</a></p>
+<h2 id="INTRO">はじめに</h2>
+<p>ゲームが好きなので、一度ゲームを作ってみたいと思ってました。巷にはゲーム制作ソフトも色々とありますが、プログラミングにも少し興味があったので、自分でプログラムを書いて作ってみるよー。学んだことを忘れないように、Webページにまとめていくことにしました。</p>
+<p>Q：なんでDXライブラリなの？</p>
+<p>A：ネット上に日本語の解説がたくさんあるし、2Dの簡単なゲームを作るのに良さそうだったから</p>
+<p>Q：なんでC#なの？C++じゃないの？</p>
+<p>A：C++よりC#のほうがわかりやすそうだから</p>
+<h2>ゲームを作る準備</h2>
+<h3 id="VC">Visual Studio 2017 Communityをインストールする</h3>
+<p>まずはプログラムを作るためのソフト、Visual Studio 2017 Communityをインストールするよ。</p>
+<p>ダウンロード先はここ　<a href="https://visualstudio.microsoft.com/ja/">https://visualstudio.microsoft.com/ja/</a></p>
+<p>Visual Studio 2017は、必要な機能を選んでインストールするようになっています。インストーラーの「ワークロード」では「.NETデスクトップ開発」のみを選択すればOK。</p>
+<p>Visual Studio 2017 Communityは基本無料、アイテム課金などはないけど、30日以上使う場合はアカウント登録が必要になります。</p>
+<h3>DXライブラリを使えるようにする</h3>
+<p>ゲームを動かすのに必要なDirectXを簡単に使えるようにしてくれる、DXライブラリを導入するよ。</p>
+<p>ダウンロード先はここ　<a href="http://dxlib.o.oo7.jp/dxdload.html">http://dxlib.o.oo7.jp/dxdload.html</a>　このページの「Visual C# 用パッケージ」をダウンロードして任意のフォルダーに展開しておく。</p>
+<p>Visual Studio 2017のメニューの「新規作成」&rarr;「プロジェクト」で「Visual C#」&rarr;「Windowsデスクトップ」&rarr;「空のプロジェクト」を選んでプロジェクト作成。</p>
+<p>初期設定だと、デバッグ開始した時にゲームの画面と一緒にコンソールウィンドウも開くので、ゲームの画面だけ開くようにする。「プロジェクト」&rarr;「（プロジェクト名）のプロパティ」で「アプリケーション」の「出力の種類」を「Windowsアプリケーション」にする。</p>
+<p>プロジェクトにDXライブラリのファイルを追加。(プロジェクト名)￥bin￥Debugフォルダーに「DxLib.dll」、「DxLib_x64.dll」、「DxLibDotNet.dll」をコピー。そして「プロジェクト」&rarr;「既存の項目の追加」で「DxDLL.cs」を追加。</p>
+<h3>ちゃんと動くか確認</h3>
+<p>「プロジェクト」&rarr;「新しい項目の追加」で「コード ファイル」を選んで、好きな名前をつけて追加し、以下のプログラムをコピペする。</p>
+<pre class="line-numbers"><code class="language-csharp">using DxLibDLL;
+using System;
+
+namespace DxTestApp
+{
+    class DxTest
+    {
+        [STAThread]
+        static void Main()
+        {
+            DX.ChangeWindowMode(DX.TRUE);
+            DX.SetGraphMode(640, 480, 32);
+            if (DX.DxLib_Init() == -1)
+            {
+                return;
+            }
+            DX.SetDrawScreen(DX.DX_SCREEN_BACK);
+
+            while (DX.ScreenFlip() == 0 &amp;&amp; DX.ProcessMessage() == 0 &amp;&amp; DX.ClearDrawScreen() == 0)
+                DX.DrawCircle(320, 240, 64, 0xffff);
+            {
+            }
+            DX.DxLib_End();
+            return;
+        }
+    }
+}</code></pre>
+<p>「デバッグ」&rarr;「デバッグの開始」、またはツールバーの「開始」、または「F5」キー、を押してデバッグ開始。ウィンドウが開いて黒い画面に水色の円が表示されれば大成功！</p>
+<h3>Visual Studio 2017 Communityのこと</h3>
+<table>
+<tbody>
+<tr>
+<td>Visual Studioのテーマを変える</td>
+<td>「ツール」&rarr;「オプション」の「環境」&rarr;「全般」&rarr;「視覚的効果」の「配色テーマ」でいくつかから選べる</td>
+</tr>
+<tr>
+<td>書いたプログラムを整形</td>
+<td>Ctrl+K、Ctrl+D</td>
+</tr>
+<tr>
+<td>入力補完を再度出す</td>
+<td>Ctrl+J</td>
+</tr>
+<tr>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h2 id="C#">C#のこと</h2>
+<p>すべてのプログラムはクラス(Class)という枠組みの中に書く</p>
+<p>プログラムを実行すると、static void Main(){}から処理が始まる</p>
+<p>文字列は「&rdquo;（ダブルクォーテーション）」で括る</p>
+<p>命令の最後には「;(セミコロン)」を付ける</p>
+<h3>hello, world</h3>
+<p>プログラミングを始める時の通例だそうな</p>
+<pre class="line-numbers"><code class="language-csharp">using System;
+
+class HelloWorld
+{
+    static void Main()
+    {
+        System.Console.WriteLine("hello, world");
+    }
+}
+</code></pre>
+<p>実行すると「出力」欄に「hello, world」と表示される</p>
+<h3>コメント文</h3>
+<p>処理に影響しない注釈文を書き込める</p>
+<pre class="line-numbers"><code class="language-csharp">//一行コメント
+
+/*
+    複数行コメント
+*/
+</code></pre>
+<h3>ブロック文</h3>
+<p>複数の文をまとめる</p>
+<pre class="line-numbers"><code class="language-csharp">{
+    //{}で括った文はひとまとめで扱われる
+    //ブロック文の中に書く文は、見やすいようにインデントする。
+}</code></pre>
+<h3>変数</h3>
+<p>数値とか文字とかの入れ物</p>
+<pre class="line-numbers"><code class="language-csharp">//変数を宣言
+int i;//整数
+double d;//倍精度浮動小数
+bool b;//ブール値(trueかfalse)フラグに使う
+string s;//文字列
+
+int ix,iy,iz;//複数の変数をまとめて宣言
+
+//宣言した変数に代入。
+i = 0;
+d = 0.1;
+b = true;
+s = "文字";
+
+int j = 100;//変数を宣言しつつ代入
+int k = 0,l = 1;//複数の変数をまとめて宣言しつつ代入
+</code></pre>
+<h3>演算</h3>
+<p>足し算とか引き算とか</p>
+<pre class="line-numbers"><code class="language-csharp">a = 1 + 1;//足し算
+b = 1 - 1;//引き算
+c = 1 * 2;//掛け算
+d = 2 / 1;//割り算
+e = 2 % 1;//余り
+
+a = (1 + 1) * 2;//()で括った式は計算が優先される
+
+a = a + 1//aの値を1増やす
+a += 1;//複合代入演算。上と同じ意味。より短く書ける。
+
+f++//インクリメント。1増やす
+f--//デクリメント。1減らす
+</code></pre>
+<h3>型の違う変数同士で演算</h3>
+<p>型を変換しても値の大きさが失われない場合に限り、勝手に変換されて計算される（暗黙の型変換）。</p>
+<pre class="line-numbers"><code class="language-csharp">int i = 1;
+double d = 1.25;
+System.Console.WriteLine(i + d);//結果は2.25
+</code></pre>
+<h3>名前空間</h3>
+<p>変数や関数などの名前が有効な範囲を定める</p>
+<pre class="line-numbers"><code class="language-csharp">namespace name{
+ int a;
+}
+a = 0;//名前空間の外からは参照できずエラーになる
+</code></pre>
+<h3>参照渡し</h3>
+<p>変数の中身ではなく変数への参照を渡す</p>
+<pre class="line-numbers"><code class="language-csharp">int a = 0;
+int b = 100;
+int c;//outで受け取る場合は初期化はいらない
+MethodA(ref a);
+MethodB(in b);//読み取り専用
+MethodC(out c);
+</code></pre>
+<h2 id="DXL">DXライブラリのこと</h2>
+<h3>とりあえずゲームの画面を出す</h3>
+<pre class="line-numbers"><code class="language-csharp">using DxLibDLL;
+using System;
+
+namespace DxTestApp
+{
+    class DxTest
+    {
+        [STAThread]
+        static void Main()
+        {
+            DX.ChangeWindowMode(DX.TRUE);
+            DX.SetGraphMode(640, 480, 32);
+            if (DX.DxLib_Init() == -1)
+            {
+                return;
+            }
+            DX.SetDrawScreen(DX.DX_SCREEN_BACK);
+
+            while (DX.ScreenFlip() == 0 &amp;&amp; DX.ProcessMessage() == 0 &amp;&amp; DX.ClearDrawScreen() == 0)
+                //ここにプログラムを書いていく
+            {
+            }
+            DX.DxLib_End();
+            return;
+        }
+    }
+}<br /><br /></code></pre>
+<h2 id="LINK">お役立ちリンク</h2>
+<p><a href="https://visualstudio.microsoft.com/ja/">Visual Studio 2017</a>&nbsp;Visual Studio 2017の公式サイト</p>
+<p><a href="http://dxlib.o.oo7.jp">DXライブラリ置き場</a>&nbsp;DXライブラリの公式サイト</p>
+<p><a href="https://www.gimp.org">GIMP</a>&nbsp;無料の画像編集ソフト</p>
+<p><a href="https://prismjs.com">Prism</a>&nbsp;このサイトのプログラム表示に使っているスタイルシート</p>
+<p></p>
+<hr />
+<p>Copyright&copy;<a href="https://twitter.com/HagureYouma">Hagure Youma</a> 2018.</p>
+<script src="prism.js"></script>
+</body>
+</html>

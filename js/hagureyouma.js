@@ -10,6 +10,13 @@ document.querySelectorAll('.popup img').forEach(function (elem) {
 		modal.style.display = 'block';
 	})
 });
+//ヘッダー
+const div = document.querySelector('.contents');
+div.insertAdjacentHTML('afterbegin', ' <header><div class="header"><a class="area" href="/index.html"></a><i class="fas fa-ghost"></i><div><h1>HAGURE YOUMA&#39;S HIDEOUT</h1><p>はぐれヨウマの隠れ家</p></div><i class="fas fa-ghost"></i></div></header>');
+//フッター
+if (window.location.pathname.split("/").pop() !== "index.html") {
+	div.insertAdjacentHTML('beforeend', '<footer><hr><a href="/index.html" target="_top">ホームへ戻る</a></footer>');
+}
 
 //もくじ自動生成
 const hs = document.querySelectorAll('h2');

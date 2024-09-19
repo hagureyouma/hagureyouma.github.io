@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta content="ja" http-equiv="Content-Language">
+    <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+    <title>C#でゲーム作るよ</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <link href="/css/hagureyouma.css" rel="stylesheet" type="text/css">
+    <link href="/css/prism.css" rel="stylesheet" type="text/css">
+    <link href="https://fonts.googleapis.com/css?family=Press+Start+2P" rel="stylesheet">
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.8.1/css/all.css" integrity="sha384-50oBUHEmvpQ+1lW4y57PTFmhCaXp0ML5d60M1M7uH2+nqUivzIebhndOJK28anvf" crossorigin="anonymous">
+</head>
+
+<body>
+    <div class="maincontainer">
+        <header>
+            <div class="header">
+                <a class="area" href="/index.html"></a>
+                <i class="fas fa-ghost"></i>
+                <div>
+                    <h1>HAGURE YOUMA'S HIDEOUT</h1>
+                    <p>はぐれヨウマの隠れ家</p>
+                </div>
+                <i class="fas fa-ghost"></i>
+            </div>
+        </header>
+        <div class="contents">
+            <section>
+                <h1 class="head">C#でゲーム作るよ</h1>
+                <hr>
+                <p>ゲーム作りたくなった</p>
+            </section>
+            <nav>
+                <div class="menu">
+                    <h3 class="head">目次</h3>
+                    <ul>
+                        <li>あああ</li>
+                        <li>いいい</li>
+                        <li>ううう</li>
+                        <li>えええ</li>
+                    </ul>
+                </div>
+            </nav>
+            <section>
+                <h2 class="head">はじめに</h2>
+                <p>一度ゲームを作ってみたいと思ってた。巷にはゲーム制作ソフトやゲームエンジンは色々とあるけど、プログラミングが必修化される昨今だし自分でプログラムを書いて作ってみるよー</p>
+                <dl>
+                    <dt>どんなゲーム作るの？</dt>
+                    <dd>PCで遊べる2DのRPGが作りたいなぁ。スマホは今のところ考えてなかった。</dd>
+                    <dt>なにを使ってゲーム作るの？</dt>
+                    <dd>C#とDXライブラリ</dd>
+                    <dt>なんでC#なの？C++じゃないの？</dt>
+                    <dd>PCのデスクトップアプリを作れる言語の中ではわかりやすそうだったから。C++はめんどくさそう。</dd>
+                    <dt>なんでDXライブラリなの？</dt>
+                    <dd>自分でDirectXを使うの大変そうだし。DXライブラリはC#で使えるし、公式サイトに特徴として「ライブラリの色が薄い」とあるように独自仕様に左右されにくそうだし日本語の解説が充実しているし簡単な2Dゲームを作るのによさそうだから。でもそのうちライブラリに頼らず自分でDirectXを使いたい気もする。</dd>
+                </dl>
+                <h2 class="head">C#でゲームことはじめ</h2>
+                <p>C#とDXライブラリでゲームを作る環境を整える手順</p>
+                <h3 class="head">Visual Studio 2019 Communityをインストールする</h3>
+                <p>まずはプログラムを作るための開発環境、Visual Studio 2019 Community
+                    をインストールするよー</p>
+                <p>Visual Studio 2019 Communityは無料、30日以上使う場合はアカウント登録が必要になります。</p>
+                <ol>
+                    <li>Visual Studio 2019のダウンロードはここから　<a href="https://visualstudio.microsoft.com/ja/">https://visualstudio.microsoft.com/ja/</a></li>
+                    <li>Visual Studio 2019 Community（以下VS）をインストール。必要な機能だけを選んでインストールできるようになってるから「.NET デスクトップ開発」だけインストールすればよさげ。</li>
+                    <li>早速起動！なんですけど、私の環境ではなぜか管理者として実行しないとエラーを起こして起動しなかったんだけどなんで…。</li>
+                    <li>なお画面左側のツールバーとか使わなそうなウィンドウは消して画面を広くしてました。</li>
+                </ol>
+                <h3 class="head">プロジェクトを作成する</h3>
+                <p>新規プロジェクトを作成してDXライブラリを使えるようにしよう。</p>
+                <ol>
+                    <li>DXライブラリのダウンロード先はここ　<a href="http://dxlib.o.oo7.jp/dxdload.html">http://dxlib.o.oo7.jp/dxdload.html</a>　このページにこっそり置かれている「Visual C# 用パッケージ」をダウンロードして任意のフォルダーに展開しておく。</li>
+                    <li>C#の空のプロジェクトを作成。保存先はどこでもよさげ。</li>
+                    <li>初期設定だとデバッグ開始した時にゲームの画面と一緒に黒いウィンドウも開くので、ゲームの画面だけ開くようにする。VSのメニューの「プロジェクト」→「（プロジェクト名）のプロパティ」を開いて、「アプリケーション」タブの「出力の種類」を「Windows アプリケーション」にしておく。</li>
+                    <li>プロジェクトにDXライブラリのファイルを追加する。「ソリューション エクスプローラー」の（プロジェクト名）を右クリックして「追加」→「既存の項目」でDXライブラリの「DxDLL.cs」をプロジェクトに追加。</li>
+                    <li>VSのメニューの「ビルド」→「ソリューションのビルド」で一旦ビルドする。</li>
+                    <li>「ソリューション エクスプローラー」の（プロジェクト名）を右クリックして「エクスプローラーでフォルダーを開く」でプロジェクトが保存されているフォルダーを開いたら、「Bin」フォルダーの中の「Debug」「Release」の2つのフォルダーの両方に、DXライブラリの「DxLib.dll」「DxLib_x64.dll」「DxLibDotNet.dll」をコピーする。</li>
+                </ol>
+                <h3 class="head">ちゃんと動くか確認</h3>
+                <ol>
+                    <li>「ソリューション エクスプローラー」の（プロジェクト名）を右クリックして「追加」→「新規の項目」で「コードファイル」を追加したら以下のコードをコピペする。</li>
+                    <pre class="line-numbers"><code class="language-csharp">using System;
+using DxLibDLL;
+
+namespace DxTestApp
+{
+    class DxTest
+    {
+        [STAThread]
+        static void Main()
+        {
+            DX.ChangeWindowMode(DX.TRUE);
+            DX.SetGraphMode(640, 480, 32);
+            if (DX.DxLib_Init() == -1)
+            {
+                return;
+            }
+            DX.SetDrawScreen(DX.DX_SCREEN_BACK);
+
+            while (DX.ScreenFlip() == 0 &amp;&amp; DX.ProcessMessage() == 0 &amp;&amp; DX.ClearDrawScreen() == 0)
+                DX.DrawCircle(320, 240, 64, 0xffff);
+            {
+            }
+            DX.DxLib_End();
+            return;
+        }
+    }
+}</code></pre>
+                    <li>「デバッグ」→「デバッグの開始」、またはツールバーの「開始」、または「F5」キー、を押してデバッグ開始。ウィンドウが開いて黒い画面に水色の円が表示されれば成功！</li>
+                </ol>
+                <h2 class="head">メモ</h2>
+                <dl>
+                    <dt>テキストを整形する</dt>
+                    <dd>Ctrl+K→Ctrl+D</dd>
+                    <dt>IntelliSenseを再表示</dt>
+                    <dd>Ctrl+J</dd>
+                    <dt>型推論</dt>
+                    <dd>var hagu= "はぐれ";//string型になる</dd>
+                    <dt>ジェネリックコレクションが一部しか無い！</dt>
+                    <dd>「参照の追加」、「System」を追加する</dd>
+                    <dt>画像とかのファイルはどこから？</dt>
+                    <dd>アプリの実行ファイル（.exe）があるところがルートになる。デバッグ中だとbin/debugフォルダになってるのでプロジェクトのプロパティのデバッグ→作業ディレクトリ、で設定しよう。</dd>
+                    <dt>クリップボードの履歴機能</dt>                    
+                </dl>
+            </section>
+            <footer>
+                <div class="footer">
+                    <hr>
+                    <a href="/index.html" target="_top">ホームへ戻る</a>
+                </div>
+            </footer>
+        </div>
+    </div>
+    <script src="js/prism.js"></script>
+</body></html>
