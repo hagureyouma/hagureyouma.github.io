@@ -1,0 +1,16 @@
+const contents = document.querySelector('.contents');
+const canvas = document.createElement('canvas');
+canvas.id = 'gameScreen';
+canvas.width = 320;
+canvas.height = 480;
+contents.appendChild(canvas);
+const ctx = canvas.getContext('2d');
+ctx.textBaseline = 'top';
+ctx.fillStyle = 'blue';
+ctx.fillRect(0, 0, canvas.width, canvas.height);
+ctx.fillStyle = 'white';
+ctx.font = '50px FontAwesome';
+const iconInt = parseInt("f6e2", 16);
+const iconStr = String.fromCharCode(iconInt);
+ctx.fillText(iconStr, 0, 0);
+console.log('ああああ');
