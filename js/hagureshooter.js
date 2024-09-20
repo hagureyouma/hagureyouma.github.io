@@ -13,7 +13,7 @@ class Game {
         this.delta;
     }
     Start() {
-        this.time = Performance.;
+        this.time = performance.now();
         this._tick();
     }
     _tick() {
@@ -25,7 +25,7 @@ class Game {
         ctx.fillStyle = '#ffffff';
         ctx.fillText(this.delta, 0, 30);
         requestAnimationFrame(this._tick.bind(this));
-        const now = Performance.now();
+        const now = performance.now();
         this.delta = Math.min((now - this.time) / 1000000.0, 1 / 60.0);
         this.time = now;
     }
