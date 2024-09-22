@@ -1,8 +1,7 @@
 'use strict';
 
 const iconUrl = 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css';
-
-class Game {
+class Game { 
     constructor(width = 320, height = 480) {
         const link = document.createElement('link');
         link.setAttribute('rel', 'stylesheet');
@@ -45,7 +44,7 @@ class Game {
 
     Add(obj) {
         this.objs.push(obj);
-    }
+    }    
     CodeToStr(code) {
         return String.fromCharCode(parseInt(code, 16));
     }
@@ -67,10 +66,9 @@ class Text {
         this._isCenter = false;
         this._isMiddle = false;
 
-        const ctx = canvas.getContext('2d');
+        const ctx = game.canvas.getContext('2d');
         ctx.font = `${this.weight} ${this.size}px ${this.font}`;
         ctx.fillStyle = this.color;
-        ctx.textBaseline = this.baseLine;
         const tm = ctx.measureText(this.text);
         this._width = tm.width;
         this._height = Math.abs(tm.actualBoundingBoxAscent) + Math.abs(tm.actualBoundingBoxDescent);
