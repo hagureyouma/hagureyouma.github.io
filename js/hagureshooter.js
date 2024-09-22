@@ -1,7 +1,14 @@
 'use strict';
 
+const iconUrl = 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css';
+
 class Game {
-    constructor(width = 320, height = 320) {
+    constructor(width = 320, height = 480) {
+        const link = document.createElement('link');
+        link.setAttribute('rel', 'stylesheet');
+        link.setAttribute('type', 'text/css');
+        link.setAttribute('href', iconUrl);
+        document.querySelector('head').appendChild(link);
         this.canvas = document.createElement('canvas');
         document.querySelector('body').appendChild(this.canvas);
         this.canvas.width = width;
@@ -12,7 +19,7 @@ class Game {
         this.time;
         this.delta;
     }
-    Init(init){
+    Init(init) {
         //todo:preload
         init();
     }
@@ -27,24 +34,21 @@ class Game {
         for (let i = 0; i < this.objs.length; i++) {
             this.objs[i].update(this.delta);
         }
+        const ctx = this.canvas.getContext('2d');
+        ctx.fillStyle = '#000000';
+        ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
         for (let i = 0; i < this.objs.length; i++) {
             this.objs[i].draw(this.canvas);
         }
-        var ctx = this.canvas.getContext('2d');
-        ctx.fillStyle = '#000000';
-        ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-        ctx.font = '20px FontAwesome';
-        ctx.fillStyle = '#ffffff';
-        ctx.fillText('Delta:' + this.delta, 0, 30);
         requestAnimationFrame(this._tick.bind(this));
+    }
+
+    Add(obj) {
+        this.objs.push(obj);
     }
     CodeToStr(code) {
         return String.fromCharCode(parseInt(code, 16));
     }
-    Add(obj){
-        this.objs.push(obj);
-    }
-
 }
 
 class Text {
@@ -55,13 +59,21 @@ class Text {
         this.weight = 'normal';
         this.baseLine = 'top';
         this.size = 40;
-        this._width = this._height = 0;
-        this.offsetX = this.offsetY = 0;
         this.x = this.y = 0;
         this.vx = this.vy = 0;
+        this._width = this._height = 0;
+        this.offsetX = this.offsetY = 0;
         this.rotate = 0;
         this._isCenter = false;
         this._isMiddle = false;
+
+        const ctx = canvas.getContext('2d');
+        ctx.font = `${this.weight} ${this.size}px ${this.font}`;
+        ctx.fillStyle = this.color;
+        ctx.textBaseline = this.baseLine;
+        const tm = ctx.measureText(this.text);
+        this._width = tm.width;
+        this._height = Math.abs(tm.actualBoundingBoxAscent) + Math.abs(tm.actualBoundingBoxDescent);
     }
     center() {
         this._isCenter = true;
@@ -77,13 +89,13 @@ class Text {
     }
     draw(canvas) {
         const ctx = canvas.getContext('2d');
-        ctx.font = `${this.size}px ${this.font} ${this.weight}`;
+        ctx.font = `${this.weight} ${this.size}px ${this.font}`;
         ctx.fillStyle = this.color;
-        ctx.textBaseLine = this.baseLine;
+        ctx.textBaseline = this.baseLine;
         const tm = ctx.measureText(this.text);
         this._width = tm.width;
         this._height = Math.abs(tm.actualBoundingBoxAscent) + Math.abs(tm.actualBoundingBoxDescent);
-        let ox, oy = 0;
+        let ox = 0, oy = 0;
         if (this._isCenter) ox = this._width / 2;
         if (this._isMiddle) oy = this._height / 2;
         const x = this.x - ox;
@@ -95,9 +107,20 @@ class Text {
 }
 
 const game = new Game();
+
+const text1 = new Text(game.CodeToStr('f6e2'));
+text1.size = 100;
+text1.center();
+text1.middle();
+const text2 = new Text('はぐれシューター');
+text2.size = 30;
+text2.center();
+
+game.Add(text1);
+game.Add(text2);
 game.Start();
 
-// const contents = document.querySelector('.contents');
+// const contents = document.querySelector('body');
 // const canvas = document.createElement('canvas');
 // canvas.id = 'gameScreen';
 // canvas.width = 320;
