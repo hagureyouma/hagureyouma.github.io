@@ -128,25 +128,12 @@ class Tsubutsubu {
         this.x = this.y = 0;
         this.vx = this.vy = 0;
     }
-    update(delta) {
-        this.x += this.vx * delta;
-        this.y += this.vy * delta;
-    }
-    draw(canvas) {
-        const x = this.x - this.size / 2;
-        const y = this.y - this.size / 2;
-        if (x < -this.size || x > canvas.width) return;
-        if (y < -this.size || y > canvas.height) return;
-        const ctx = canvas.getContext('2d');
-        ctx.fillStyle = this.color;
-        ctx.fillRect(x, y, this.size, this.size);
-    }
 }
 class TsubutsubuManager {
     constructor() {
         this.objs = [];
         this.reserveIndexes = [];
-        this.range = { left, right, top, bottom };
+        this.range = { left: 0, right: game.canvas.width, top: 0, bottom: game.canvas.height };
     }
     put(obj) {
         obj.IsExist = false;
@@ -172,16 +159,23 @@ class TsubutsubuManager {
         for (let i = 0; i < this.objs.length; i++) {
             const obj = this.objs[i];
             if (!obj.IsExist) continue;
-            obj.update(delta);
-            const half=obj.size/2;
-            if(obj.x+half<this.range.left||obj.x-half<this.range.right||obj.y+half<this.range.top||obj.y-half<this.range.bottom)put(obj);
+            obj.x += obj.vx * delta;
+            obj.y += obj.vy * delta;
+            const half = obj.size / 2;
+            if (obj.x + half < this.range.left || obj.x - half > this.range.right || obj.y + half < this.range.top || obj.y - half > this.range.bottom) this.put(obj);
         }
     }
     draw(canvas) {
+        const ctx = canvas.getContext('2d');
         for (let i = 0; i < this.objs.length; i++) {
             const obj = this.objs[i];
             if (!obj.IsExist) continue;
-            obj.draw(canvas);
+            const x = obj.x - obj.size / 2;
+            const y = obj.y - obj.size / 2;
+            if (x < -obj.size || x > canvas.width) continue;
+            if (y < -obj.size || y > canvas.height) continue;
+            ctx.fillStyle = obj.color;
+            ctx.fillRect(x, y, obj.size, obj.size);
         }
     }
 }
@@ -191,7 +185,7 @@ game.KeyBind('space', ' ');
 const playerMoveSpeed = 400;
 const playerBulletRate = 1 / 8;
 
-const player = new Text(game.CodeToStr('f6e2'));
+const player = new Moji(game.CodeToStr('f6e2'));
 player.size = 40;
 player.color = '#de858c';
 player.center();
@@ -199,8 +193,6 @@ player.middle();
 player.x = game.canvas.width / 2;
 player.y = game.canvas.height / 2;
 const bullets = new TsubutsubuManager();
-bullets.range.right = game.canvas.width;
-bullets.range.bottom = game.canvas.height;
 player.bullets = bullets;
 player.bulletCooltime = 0;
 player.onUpdate = (delta) => {
@@ -225,15 +217,15 @@ player.onUpdate = (delta) => {
     if (game.input.space) {
         if (player.bulletCooltime < 0) {
             player.bulletCooltime = playerBulletRate;
-            const bullet = this.bullets.get(player.x + player.width / 2, player.y, 4, '#ffffff');
-            bullet.yx = -400;
+            const bullet = player.bullets.get(player.x, player.y-player.height/2, 4, '#ffffff');
+            bullet.vy = -400;
         } else {
-            player.bulletCooltime -= 1 / delta;
+            player.bulletCooltime -= 1 * delta;
         }
     }
 }
 
-const text2 = new Text('はぐれシューター');
+const text2 = new Moji('はぐれシューター');
 text2.size = 30;
 text2.center();
 text2.middle();
@@ -241,7 +233,7 @@ text2.x = game.canvas.width / 2;
 text2.y = game.canvas.height / 2;
 
 game.Add(player);
-game.Add(player.Bullets);
+game.Add(player.bullets);
 game.Add(text2);
 game.Start();
 
