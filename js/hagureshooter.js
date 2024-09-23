@@ -1,7 +1,7 @@
 'use strict';
 
 const iconUrl = 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css';
-class Game { 
+class Game {
     constructor(width = 320, height = 480) {
         const link = document.createElement('link');
         link.setAttribute('rel', 'stylesheet');
@@ -18,11 +18,30 @@ class Game {
         this.time;
         this.delta;
     }
-    Init(init) {
+    Start(init) {
         //todo:preload
-        init();
-    }
-    Start() {
+        if (init !== undefined) init();
+
+        const _keyevent = e => {
+            e.preventDefault();
+            for (let key in this.key) {
+                switch (e.type) {
+                    case 'keydown':
+                        if (e.key === this.key[key]) this.input[key] = true;
+                        break;
+                    case 'keyup':
+                        if (e.key === this.key[key]) this.input[key] = false;
+                        break;
+                }
+            }
+        }
+        addEventListener('keydown', _keyevent, { passive: false });
+        addEventListener('keyup', _keyevent, { passive: false });
+        game.KeyBind('up', 'ArrowUp');
+        game.KeyBind('down', 'ArrowDown');
+        game.KeyBind('left', 'ArrowLeft');
+        game.KeyBind('right', 'ArrowRight');
+
         this.time = performance.now();
         this._tick();
     }
@@ -41,37 +60,32 @@ class Game {
         }
         requestAnimationFrame(this._tick.bind(this));
     }
-
     Add(obj) {
         this.objs.push(obj);
-    }    
+    }
+    KeyBind(name, key) {
+        this.key[name] = key;
+        this.input[name] = false;
+    }
     CodeToStr(code) {
         return String.fromCharCode(parseInt(code, 16));
     }
 }
 
-class Text {
+class Moji {
     constructor(text) {
-        this.text = text
-        this.font = 'FontAwesome';
+        this.text = text;
+        this.size = 20;
         this.color = '#ffffff';
+        this.font = 'FontAwesome';
         this.weight = 'normal';
         this.baseLine = 'top';
-        this.size = 40;
+        this.width = this.height = 0;
         this.x = this.y = 0;
         this.vx = this.vy = 0;
-        this._width = this._height = 0;
-        this.offsetX = this.offsetY = 0;
         this.rotate = 0;
         this._isCenter = false;
         this._isMiddle = false;
-
-        const ctx = game.canvas.getContext('2d');
-        ctx.font = `${this.weight} ${this.size}px ${this.font}`;
-        ctx.fillStyle = this.color;
-        const tm = ctx.measureText(this.text);
-        this._width = tm.width;
-        this._height = Math.abs(tm.actualBoundingBoxAscent) + Math.abs(tm.actualBoundingBoxDescent);
     }
     center() {
         this._isCenter = true;
@@ -82,39 +96,152 @@ class Text {
         return this;
     }
     update(delta) {
+        this.onUpdate(delta);
         this.x += this.vx * delta;
         this.y += this.vy * delta;
     }
     draw(canvas) {
-        const ctx = canvas.getContext('2d');
+        const ctx = game.canvas.getContext('2d');
         ctx.font = `${this.weight} ${this.size}px ${this.font}`;
-        ctx.fillStyle = this.color;
         ctx.textBaseline = this.baseLine;
         const tm = ctx.measureText(this.text);
-        this._width = tm.width;
-        this._height = Math.abs(tm.actualBoundingBoxAscent) + Math.abs(tm.actualBoundingBoxDescent);
-        let ox = 0, oy = 0;
-        if (this._isCenter) ox = this._width / 2;
-        if (this._isMiddle) oy = this._height / 2;
+        this.width = tm.width;
+        this.height = Math.abs(tm.actualBoundingBoxAscent) + Math.abs(tm.actualBoundingBoxDescent);
+        var ox = 0, oy = 0;
+        if (this._isCenter) ox = this.width / 2;
+        if (this._isMiddle) oy = this.height / 2;
         const x = this.x - ox;
         const y = this.y - oy;
-        if (x < -this._width || x > canvas.width) return;
-        if (y < -this._height || x > canvas.height) return;
+        if (x < -this.width || x > canvas.width) return;
+        if (y < -this.height || y > canvas.height) return;
+        ctx.fillStyle = this.color;
         ctx.fillText(this.text, x, y);
+    }
+    onUpdate() { }
+}
+class Tsubutsubu {
+    constructor() {
+        this.id = 0;
+        this.IsExist = true;
+        this.size = 0;
+        this.color = '#ffffff';
+        this.x = this.y = 0;
+        this.vx = this.vy = 0;
+    }
+    update(delta) {
+        this.x += this.vx * delta;
+        this.y += this.vy * delta;
+    }
+    draw(canvas) {
+        const x = this.x - this.size / 2;
+        const y = this.y - this.size / 2;
+        if (x < -this.size || x > canvas.width) return;
+        if (y < -this.size || y > canvas.height) return;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = this.color;
+        ctx.fillRect(x, y, this.size, this.size);
+    }
+}
+class TsubutsubuManager {
+    constructor() {
+        this.objs = [];
+        this.reserveIndexes = [];
+        this.range = { left, right, top, bottom };
+    }
+    put(obj) {
+        obj.IsExist = false;
+        this.reserveIndexes.push(obj.id);
+    }
+    get(x, y, size, color) {
+        let obj;
+        if (this.reserveIndexes.length === 0) {
+            obj = new Tsubutsubu();
+            obj.id = this.objs.length;
+            this.objs.push(obj);
+        } else {
+            obj = this.objs[this.reserveIndexes.pop()];
+        }
+        obj.IsExist = true;
+        obj.size = size;
+        obj.color = color;
+        obj.x = x;
+        obj.y = y;
+        return obj;
+    }
+    update(delta) {
+        for (let i = 0; i < this.objs.length; i++) {
+            const obj = this.objs[i];
+            if (!obj.IsExist) continue;
+            obj.update(delta);
+            const half=obj.size/2;
+            if(obj.x+half<this.range.left||obj.x-half<this.range.right||obj.y+half<this.range.top||obj.y-half<this.range.bottom)put(obj);
+        }
+    }
+    draw(canvas) {
+        for (let i = 0; i < this.objs.length; i++) {
+            const obj = this.objs[i];
+            if (!obj.IsExist) continue;
+            obj.draw(canvas);
+        }
+    }
+}
+const game = new Game();
+game.KeyBind('space', ' ');
+
+const playerMoveSpeed = 400;
+const playerBulletRate = 1 / 8;
+
+const player = new Text(game.CodeToStr('f6e2'));
+player.size = 40;
+player.color = '#de858c';
+player.center();
+player.middle();
+player.x = game.canvas.width / 2;
+player.y = game.canvas.height / 2;
+const bullets = new TsubutsubuManager();
+bullets.range.right = game.canvas.width;
+bullets.range.bottom = game.canvas.height;
+player.bullets = bullets;
+player.bulletCooltime = 0;
+player.onUpdate = (delta) => {
+    player.vx = 0;
+    player.vy = 0;
+    if (game.input.left) {
+        player.vx = -playerMoveSpeed;
+    }
+    if (game.input.right) {
+        player.vx = playerMoveSpeed;
+    }
+    if (game.input.up) {
+        player.vy = -playerMoveSpeed;
+    }
+    if (game.input.down) {
+        player.vy = playerMoveSpeed;
+    }
+    if (player.vx !== 0 && player.vy !== 0) {
+        player.vx *= 0.71;
+        player.vy *= 0.71;
+    }
+    if (game.input.space) {
+        if (player.bulletCooltime < 0) {
+            player.bulletCooltime = playerBulletRate;
+            const bullet = this.bullets.get(player.x + player.width / 2, player.y, 4, '#ffffff');
+            bullet.yx = -400;
+        } else {
+            player.bulletCooltime -= 1 / delta;
+        }
     }
 }
 
-const game = new Game();
-
-const text1 = new Text(game.CodeToStr('f6e2'));
-text1.size = 100;
-text1.center();
-text1.middle();
 const text2 = new Text('はぐれシューター');
 text2.size = 30;
 text2.center();
+text2.middle();
+text2.x = game.canvas.width / 2;
+text2.y = game.canvas.height / 2;
 
-game.Add(text1);
+game.Add(player);
+game.Add(player.Bullets);
 game.Add(text2);
 game.Start();
 
