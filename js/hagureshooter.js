@@ -25,11 +25,11 @@ class Game {
         this.delta;
     }
     Start(init) {
-        //todo:preload
-        if (init !== undefined) init();
-        const _keyevent = e => {
+        //todo:preload?
+        init?.();
+        const _keyEvent = e => {
             e.preventDefault();
-            for (let key in this.key) {
+            for (const key in this.key) {
                 switch (e.type) {
                     case 'keydown':
                         if (e.key === this.key[key]) this.input[key] = true;
@@ -40,8 +40,8 @@ class Game {
                 }
             }
         }
-        addEventListener('keydown', _keyevent, { passive: false });
-        addEventListener('keyup', _keyevent, { passive: false });
+        addEventListener('keydown', _keyEvent, { passive: false });
+        addEventListener('keyup', _keyEvent, { passive: false });
         game.KeyBind('up', 'ArrowUp');
         game.KeyBind('down', 'ArrowDown');
         game.KeyBind('left', 'ArrowLeft');
@@ -71,6 +71,9 @@ class Game {
         return String.fromCharCode(parseInt(code, 16));
     }
 }
+class Prop{
+
+}
 class Base {
     constructor() {
         this.id = -1;
@@ -92,26 +95,26 @@ class Iremono {
         this.base = new Base();
         this.maker = {};
         this.objs = [];
-        this.reserveIndexes = {};
+        this.reserves = {};
     }
-    setMaker(name, func) {
+    addCreator(name, func) {
         this.maker[name] = func;
     }
     put(obj) {
         if (obj.base.id < 0) return;
         obj.base.isExist = false;
-        this.reserveIndexes[obj.constructor.name].push(obj.base.id);
+        this.reserves[obj.constructor.name].push(obj.base.id);
         console.log(`${obj.constructor.name},${obj.base.id}`);
     }
     get(name) {
         let obj;
-        if (!(name in this.reserveIndexes)) this.reserveIndexes[name] = [];
-        if (this.reserveIndexes[name].length === 0) {
+        if (!(name in this.reserves)) this.reserves[name] = [];
+        if (this.reserves[name].length === 0) {
             obj = this.maker[name]();
             obj.base.id = this.objs.length;
             this.objs.push(obj);
         } else {
-            obj = this.objs[this.reserveIndexes[name].pop()];
+            obj = this.objs[this.reserves[name].pop()];
         }
         obj.base.isExist = true;
         return obj;
@@ -121,16 +124,14 @@ class Iremono {
     }
     update(delta) {
         this.preUpdate(delta);
-        for (let i = 0; i < this.objs.length; i++) {
-            const obj = this.objs[i];
+        for (const obj of this.objs) {
             if (!obj.base.isExist) continue;
             obj.update(delta);
         }
         this.postUpdate(delta);
     }
     draw(canvas) {
-        for (let i = 0; i < this.objs.length; i++) {
-            const obj = this.objs[i];
+        for (const obj of this.objs) {
             if (!obj.base.isExist) continue;
             obj.draw(canvas);
         }
@@ -206,79 +207,92 @@ class Tofu {
 const game = new Game();
 game.KeyBind('space', ' ');
 
-const sceneGame = new Iremono();
-game.Add(sceneGame);
-
-const player = new Moji(game.CodeToStr('f6e2'));
-sceneGame.Add(player);
-player.size = 40;
-player.color = '#de858c';
-player.center();
-player.middle();
-player.pos.x = game.canvas.width * 0.5;
-player.pos.y = game.canvas.height * 0.5;
-player.bulletCooltime = 0;
-
-const playerBullets = new Iremono();
-sceneGame.Add(playerBullets);
-playerBullets.setMaker(Tofu.name, () => new Tofu());
-
-const enemies=new Iremono();
-sceneGame.Add(enemies);
-enemies.setMaker(Moji.name, () => new Moji());
-enemies.spawn=()=>{
-
-}
-
-sceneGame.preUpdate = (delta) => {
-    player.pos.vx = 0;
-    player.pos.vy = 0;
-    if (game.input.left) {
-        player.pos.vx = -playerMoveSpeed;
+class ScenePlay extends Iremono {
+    constructor() {
+        super();
+        this.text = new Moji('はぐれシューター');
+        this.text.size = 30;
+        this.text.color = '#666666';
+        this.text.center();
+        this.text.middle();
+        this.text.pos.x = game.canvas.width * 0.5;
+        this.text.pos.y = game.canvas.height * 0.5;
+        this.Add(this.text);
+        this.player = new Player();
+        this.Add(this.player);
+        this.Add(this.player.bullets);
     }
-    if (game.input.right) {
-        player.pos.vx = playerMoveSpeed;
+    preUpdate = (delta) => {
+        this.player.preUpdate(delta);
     }
-    if (game.input.up) {
-        player.pos.vy = -playerMoveSpeed;
-    }
-    if (game.input.down) {
-        player.pos.vy = playerMoveSpeed;
-    }
-    if (player.pos.vx !== 0 && player.pos.vy !== 0) {
-        player.pos.vx *= nanameCorrect;
-        player.pos.vy *= nanameCorrect;
-    }
-    if (game.input.space) {
-        if (player.bulletCooltime < 0) {
-            player.bulletCooltime = playerBulletRate;
-            const bullet = playerBullets.get(Tofu.name);
-            bullet.width = 4;
-            bullet.height = 4;
-            bullet.color = '#ffffff';
-            bullet.pos.x = player.pos.x;
-            bullet.pos.y = player.pos.y - player.height * 0.5;
-            bullet.pos.vy = -400;
-        } else {
-            player.bulletCooltime -= 1 * delta;
+    postUpdate = (delta) => {
+        this.player.pos.x = Math.cl (0, this.player.pos.x);
+        this.player.pos.x = Math.min(game.canvas.width, this.player.pos.x+this.player.width);
+        this.player.pos.y = Math.max(0, this.player.pos.y);
+        this.player.pos.y = Math.min(game.canvas.height, this.player.pos.y+this.player.height);
+        for (const obj of this.player.bullets.objs) {
+            if (!obj.base.isExist) continue;
+            const halfX = obj.width * 0.5;
+            const halfY = obj.height * 0.5;
+            if (obj.pos.x + halfX < 0 || obj.pos.x - halfX > game.canvas.width || obj.pos.y + halfY < 0 || obj.pos.y - halfY > game.canvas.height) this.player.bullets.put(obj);
         }
     }
 }
-sceneGame.postUpdate = (delta) => {
-    for (let i = 0; i < playerBullets.objs.length; i++) {
-        const obj = playerBullets.objs[i];
-        if (!obj.base.isExist) continue;
-        const halfX = obj.width * 0.5;
-        const halfY = obj.height * 0.5;
-        if (obj.pos.x + halfX < 0 || obj.pos.x - halfX > game.canvas.width || obj.pos.y + halfY < 0 || obj.pos.y - halfY > game.canvas.height) playerBullets.put(obj);
+class Player extends Moji {
+    constructor() {
+        super(game.CodeToStr('f6e2'));
+        this.size = 40;
+        this.color = '#de858c';
+        this.center();
+        this.middle();
+        this.pos.x = game.canvas.width * 0.5;
+        this.pos.y = game.canvas.height * 0.5;
+        this.bulletCooltime = 0;
+        this.bullets = new Iremono();
+        this.bullets.addCreator(Tofu.name, () => new Tofu());
+    }
+    preUpdate(delta) {
+        this.pos.vx = 0;
+        this.pos.vy = 0;
+        if (game.input.left) {
+            this.pos.vx = -playerMoveSpeed;
+        }
+        if (game.input.right) {
+            this.pos.vx = playerMoveSpeed;
+        }
+        if (game.input.up) {
+            this.pos.vy = -playerMoveSpeed;
+        }
+        if (game.input.down) {
+            this.pos.vy = playerMoveSpeed;
+        }
+        if (this.pos.vx !== 0 && this.pos.vy !== 0) {
+            this.pos.vx *= nanameCorrect;
+            this.pos.vy *= nanameCorrect;
+        }
+        if (game.input.space) {
+            if (this.bulletCooltime < 0) {
+                this.bulletCooltime = playerBulletRate;
+                const bullet = this.bullets.get(Tofu.name);
+                bullet.width = 4;
+                bullet.height = 4;
+                bullet.color = '#ffffff';
+                bullet.pos.x = this.pos.x;
+                bullet.pos.y = this.pos.y - this.height * 0.5;
+                bullet.pos.vy = -400;
+            } else {
+                this.bulletCooltime -= 1 * delta;
+            }
+        }
     }
 }
 
-const text2 = new Moji('はぐれシューター');
-text2.size = 30;
-text2.center();
-text2.middle();
-text2.pos.x = game.canvas.width * 0.5;
-text2.pos.y = game.canvas.height * 0.5;
-sceneGame.Add(text2);
+game.Add(new ScenePlay());
+
+const enemies = new Iremono();
+// sceneGame.Add(enemies);
+enemies.addCreator(Moji.name, () => new Moji());
+enemies.spawn = () => {
+
+}
 game.Start();
