@@ -2,9 +2,9 @@
 
 const iconUrl = 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css';
 
-const emojiGhost='f6e2';
-const emojiCat='f6be';
-const emojiCrow='f520';
+const emojiGhost = 'f6e2';
+const emojiCat = 'f6be';
+const emojiCrow = 'f520';
 
 const playerMoveSpeed = 600;
 const playerBulletRate = 1 / 20;
@@ -85,7 +85,7 @@ class Pos {
     constructor() {
         this.x = this.y = 0;
         this.vx = this.vy = 0;
-        this.width=this.height=0;
+        this.width = this.height = 0;
     }
     update(delta) {
         this.x += this.vx * delta;
@@ -142,7 +142,7 @@ class Iremono {
     postUpdate(delta) { }
 }
 class Moji {
-    constructor(text) {
+    constructor(text,{size=20,color='#ffffff',font='FontAwesome',weight='normal'}={}) {
         this.base = new Base();
         this.pos = new Pos();
         this.text = text;
@@ -178,8 +178,8 @@ class Moji {
         if (this._isMiddle) oy = this.pos.height * 0.5;
         const x = this.pos.x - ox;
         const y = this.pos.y - oy;
-        if (x < -this.width || x > canvas.width) return;
-        if (y < -this.height || y > canvas.height) return;
+        if (x < -this.pos.width || x > canvas.width) return;
+        if (y < -this.pos.height || y > canvas.height) return;
         ctx.fillStyle = this.color;
         ctx.fillText(this.text, x, y);
     }
@@ -188,8 +188,6 @@ class Tofu {
     constructor() {
         this.base = new Base();
         this.pos = new Pos();
-        this.width = 0;
-        this.height = 0;
         this.color = '#ffffff';
     }
     update(delta) {
@@ -197,13 +195,13 @@ class Tofu {
     }
     draw(canvas) {
 
-        const x = this.pos.x - this.width * 0.5;
-        const y = this.pos.y - this.height * 0.5;;
-        if (x < -this.width || x > canvas.width) return;
-        if (y < -this.height || y > canvas.height) return;
+        const x = this.pos.x - this.pos.width * 0.5;
+        const y = this.pos.y - this.pos.height * 0.5;;
+        if (x < -this.pos.width || x > canvas.width) return;
+        if (y < -this.pos.height || y > canvas.height) return;
         const ctx = canvas.getContext('2d');
         ctx.fillStyle = this.color;
-        ctx.fillRect(x, y, this.width, this.height);
+        ctx.fillRect(x, y, this.pos.width, this.pos.height);
     }
 }
 const game = new Game();
@@ -229,16 +227,16 @@ class ScenePlay extends Iremono {
     }
     postUpdate = (delta) => {
         {
-            const halfX = this.player.width * 0.5;
-            const halfY = this.player.height * 0.5;
+            const halfX = this.player.pos.width * 0.5;
+            const halfY = this.player.pos.height * 0.5;
             this.player.pos.x = Util.Clamp(halfX, this.player.pos.x, game.canvas.width - halfX);
             this.player.pos.y = Util.Clamp(halfY, this.player.pos.y, game.canvas.height - halfY);
         }
         {
             for (const obj of this.player.bullets.objs) {
                 if (!obj.base.isExist) continue;
-                const halfX = obj.width * 0.5;
-                const halfY = obj.height * 0.5;
+                const halfX = obj.pos.width * 0.5;
+                const halfY = obj.pos.height * 0.5;
                 if (obj.pos.x + halfX < 0 || obj.pos.x - halfX > game.canvas.width || obj.pos.y + halfY < 0 || obj.pos.y - halfY > game.canvas.height) this.player.bullets.put(obj);
             }
         }
@@ -280,11 +278,11 @@ class Player extends Moji {
             if (this.bulletCooltime < 0) {
                 this.bulletCooltime = playerBulletRate;
                 const bullet = this.bullets.get(Tofu.name);
-                bullet.width = 4;
-                bullet.height = 4;
+                bullet.pos.width = 4;
+                bullet.pos.height = 4;
                 bullet.color = '#ffffff';
                 bullet.pos.x = this.pos.x;
-                bullet.pos.y = this.pos.y - this.height * 0.5;
+                bullet.pos.y = this.pos.y - this.pos.height * 0.5;
                 bullet.pos.vy = -400;
             } else {
                 this.bulletCooltime -= 1 * delta;
@@ -292,8 +290,8 @@ class Player extends Moji {
         }
     }
 }
-class Enemy extends Moji{
-    constructor(){
+class Enemy extends Moji {
+    constructor() {
 
     }
 }
