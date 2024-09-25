@@ -2,10 +2,12 @@
 
 const iconUrl = 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css';
 
-const nanameCorrect = 0.71;
+const emojiGhost='f6e2';
+const emojiCat='f6be';
+const emojiCrow='f520';
 
-const playerMoveSpeed = 400;
-const playerBulletRate = 1 / 8;
+const playerMoveSpeed = 600;
+const playerBulletRate = 1 / 20;
 
 class Game {
     constructor(width = 320, height = 480) {
@@ -67,12 +69,11 @@ class Game {
         this.key[name] = key;
         this.input[name] = false;
     }
-    CodeToStr(code) {
-        return String.fromCharCode(parseInt(code, 16));
-    }
 }
-class Prop{
-
+class Util {
+    static get nanameCorrect() { return 0.71 };
+    static ParseUnicode = (code) => String.fromCharCode(parseInt(code, 16));
+    static Clamp = (value, min, max) => Math.min(Math.max(value, min), max);
 }
 class Base {
     constructor() {
@@ -84,6 +85,7 @@ class Pos {
     constructor() {
         this.x = this.y = 0;
         this.vx = this.vy = 0;
+        this.width=this.height=0;
     }
     update(delta) {
         this.x += this.vx * delta;
@@ -149,7 +151,6 @@ class Moji {
         this.font = 'FontAwesome';
         this.weight = 'normal';
         this.baseLine = 'top';
-        this.width = this.height = 0;
         this.rotate = 0;
         this._isCenter = false;
         this._isMiddle = false;
@@ -170,11 +171,11 @@ class Moji {
         ctx.font = `${this.weight} ${this.size}px ${this.font}`;
         ctx.textBaseline = this.baseLine;
         const tm = ctx.measureText(this.text);
-        this.width = tm.width;
-        this.height = Math.abs(tm.actualBoundingBoxAscent) + Math.abs(tm.actualBoundingBoxDescent);
+        this.pos.width = tm.width;
+        this.pos.height = Math.abs(tm.actualBoundingBoxAscent) + Math.abs(tm.actualBoundingBoxDescent);
         var ox = 0, oy = 0;
-        if (this._isCenter) ox = this.width * 0.5;
-        if (this._isMiddle) oy = this.height * 0.5;
+        if (this._isCenter) ox = this.pos.width * 0.5;
+        if (this._isMiddle) oy = this.pos.height * 0.5;
         const x = this.pos.x - ox;
         const y = this.pos.y - oy;
         if (x < -this.width || x > canvas.width) return;
@@ -195,11 +196,12 @@ class Tofu {
         this.pos.update(delta);
     }
     draw(canvas) {
-        const ctx = canvas.getContext('2d');
+
         const x = this.pos.x - this.width * 0.5;
         const y = this.pos.y - this.height * 0.5;;
         if (x < -this.width || x > canvas.width) return;
         if (y < -this.height || y > canvas.height) return;
+        const ctx = canvas.getContext('2d');
         ctx.fillStyle = this.color;
         ctx.fillRect(x, y, this.width, this.height);
     }
@@ -210,8 +212,8 @@ game.KeyBind('space', ' ');
 class ScenePlay extends Iremono {
     constructor() {
         super();
-        this.text = new Moji('はぐれシューター');
-        this.text.size = 30;
+        this.text = new Moji('シューティングゲームだよ');
+        this.text.size = 25;
         this.text.color = '#666666';
         this.text.center();
         this.text.middle();
@@ -226,21 +228,25 @@ class ScenePlay extends Iremono {
         this.player.preUpdate(delta);
     }
     postUpdate = (delta) => {
-        this.player.pos.x = Math.cl (0, this.player.pos.x);
-        this.player.pos.x = Math.min(game.canvas.width, this.player.pos.x+this.player.width);
-        this.player.pos.y = Math.max(0, this.player.pos.y);
-        this.player.pos.y = Math.min(game.canvas.height, this.player.pos.y+this.player.height);
-        for (const obj of this.player.bullets.objs) {
-            if (!obj.base.isExist) continue;
-            const halfX = obj.width * 0.5;
-            const halfY = obj.height * 0.5;
-            if (obj.pos.x + halfX < 0 || obj.pos.x - halfX > game.canvas.width || obj.pos.y + halfY < 0 || obj.pos.y - halfY > game.canvas.height) this.player.bullets.put(obj);
+        {
+            const halfX = this.player.width * 0.5;
+            const halfY = this.player.height * 0.5;
+            this.player.pos.x = Util.Clamp(halfX, this.player.pos.x, game.canvas.width - halfX);
+            this.player.pos.y = Util.Clamp(halfY, this.player.pos.y, game.canvas.height - halfY);
+        }
+        {
+            for (const obj of this.player.bullets.objs) {
+                if (!obj.base.isExist) continue;
+                const halfX = obj.width * 0.5;
+                const halfY = obj.height * 0.5;
+                if (obj.pos.x + halfX < 0 || obj.pos.x - halfX > game.canvas.width || obj.pos.y + halfY < 0 || obj.pos.y - halfY > game.canvas.height) this.player.bullets.put(obj);
+            }
         }
     }
 }
 class Player extends Moji {
     constructor() {
-        super(game.CodeToStr('f6e2'));
+        super(Util.ParseUnicode(emojiGhost));
         this.size = 40;
         this.color = '#de858c';
         this.center();
@@ -267,8 +273,8 @@ class Player extends Moji {
             this.pos.vy = playerMoveSpeed;
         }
         if (this.pos.vx !== 0 && this.pos.vy !== 0) {
-            this.pos.vx *= nanameCorrect;
-            this.pos.vy *= nanameCorrect;
+            this.pos.vx *= Util.nanameCorrect;
+            this.pos.vy *= Util.nanameCorrect;
         }
         if (game.input.space) {
             if (this.bulletCooltime < 0) {
@@ -286,13 +292,16 @@ class Player extends Moji {
         }
     }
 }
+class Enemy extends Moji{
+    constructor(){
 
-game.Add(new ScenePlay());
-
+    }
+}
 const enemies = new Iremono();
 // sceneGame.Add(enemies);
 enemies.addCreator(Moji.name, () => new Moji());
 enemies.spawn = () => {
 
 }
+game.Add(new ScenePlay());
 game.Start();
