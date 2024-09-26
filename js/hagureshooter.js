@@ -86,10 +86,16 @@ class Pos {
         this.x = this.y = 0;
         this.vx = this.vy = 0;
         this.width = this.height = 0;
+        this.alignX=this.alignY=0;
+        this._isCenter = true;
+        this._isMiddle = true;
     }
-    update(delta) {
-        this.x += this.vx * delta;
-        this.y += this.vy * delta;
+    apply(){
+        
+    }
+    update() {
+        this.x += this.vx * game.delta;
+        this.y += this.vy * game.delta;
     }
 }
 class Iremono {
@@ -124,62 +130,59 @@ class Iremono {
     Add(obj) {
         this.objs.push(obj);
     }
-    update(delta) {
-        this.preUpdate(delta);
+    update() {
+        this.preUpdate();
         for (const obj of this.objs) {
             if (!obj.base.isExist) continue;
-            obj.update(delta);
+            obj.update();
         }
-        this.postUpdate(delta);
+        this.postUpdate();
     }
-    draw(canvas) {
+    draw() {
         for (const obj of this.objs) {
             if (!obj.base.isExist) continue;
-            obj.draw(canvas);
+            obj.draw();
         }
     }
-    preUpdate(delta) { }
-    postUpdate(delta) { }
+    preUpdate() { }
+    postUpdate() { }
 }
 class Moji {
-    constructor(text,{size=20,color='#ffffff',font='FontAwesome',weight='normal'}={}) {
+    constructor(text = '', { size = 20, color = '#ffffff', font = 'FontAwesome', weight = 'normal', isCenter = false, isMiddle = false } = {}) {
         this.base = new Base();
         this.pos = new Pos();
         this.text = text;
-        this.size = 20;
-        this.color = '#ffffff';
-        this.font = 'FontAwesome';
-        this.weight = 'normal';
+        this.size = size;
+        this.color = color;
+        this.font = font;
+        this.weight = weight;
+        this._isCenter = isCenter;
+        this._isMiddle = isMiddle;
         this.baseLine = 'top';
         this.rotate = 0;
-        this._isCenter = false;
-        this._isMiddle = false;
+        this._applyText();
     }
-    center() {
-        this._isCenter = true;
-        return this;
+    changeText(text) {
+        this.text = text;
+        this._applyText();
     }
-    middle() {
-        this._isMiddle = true;
-        return this;
-    }
-    update(delta) {
-        this.pos.update(delta);
-    }
-    draw(canvas) {
+    _applyText() {
         const ctx = game.canvas.getContext('2d');
         ctx.font = `${this.weight} ${this.size}px ${this.font}`;
         ctx.textBaseline = this.baseLine;
         const tm = ctx.measureText(this.text);
         this.pos.width = tm.width;
         this.pos.height = Math.abs(tm.actualBoundingBoxAscent) + Math.abs(tm.actualBoundingBoxDescent);
-        var ox = 0, oy = 0;
-        if (this._isCenter) ox = this.pos.width * 0.5;
-        if (this._isMiddle) oy = this.pos.height * 0.5;
-        const x = this.pos.x - ox;
-        const y = this.pos.y - oy;
-        if (x < -this.pos.width || x > canvas.width) return;
-        if (y < -this.pos.height || y > canvas.height) return;
+    }
+    update() {
+        this.pos.update();
+    }
+    draw() {
+        const x = this.pos.x - (Boolean(this._isCenter) * this.pos.width * 0.5);
+        const y = this.pos.y - (Boolean(this._isMiddle) * this.pos.height * 0.5);
+        if (x < -this.pos.width || x > game.canvas.width) return;
+        if (y < -this.pos.height || y > game.canvas.height) return;
+        const ctx = game.canvas.getContext('2d');
         ctx.fillStyle = this.color;
         ctx.fillText(this.text, x, y);
     }
@@ -190,31 +193,26 @@ class Tofu {
         this.pos = new Pos();
         this.color = '#ffffff';
     }
-    update(delta) {
-        this.pos.update(delta);
+    update() {
+        this.pos.update();
     }
-    draw(canvas) {
-
+    draw() {
         const x = this.pos.x - this.pos.width * 0.5;
         const y = this.pos.y - this.pos.height * 0.5;;
-        if (x < -this.pos.width || x > canvas.width) return;
-        if (y < -this.pos.height || y > canvas.height) return;
-        const ctx = canvas.getContext('2d');
+        if (x < -this.pos.width || x > game.canvas.width) return;
+        if (y < -this.pos.height || y > game.canvas.height) return;
+        const ctx = game.canvas.getContext('2d');
         ctx.fillStyle = this.color;
         ctx.fillRect(x, y, this.pos.width, this.pos.height);
     }
 }
-const game = new Game();
+export const game = new Game();
 game.KeyBind('space', ' ');
 
 class ScenePlay extends Iremono {
     constructor() {
         super();
-        this.text = new Moji('シューティングゲームだよ');
-        this.text.size = 25;
-        this.text.color = '#666666';
-        this.text.center();
-        this.text.middle();
+        this.text = new Moji('シューティングゲームだよ', { size: 25, color: '#666666', isCenter: true, isMiddle: true });
         this.text.pos.x = game.canvas.width * 0.5;
         this.text.pos.y = game.canvas.height * 0.5;
         this.Add(this.text);
@@ -222,10 +220,10 @@ class ScenePlay extends Iremono {
         this.Add(this.player);
         this.Add(this.player.bullets);
     }
-    preUpdate = (delta) => {
-        this.player.preUpdate(delta);
+    preUpdate = () => {
+        this.player.preUpdate();
     }
-    postUpdate = (delta) => {
+    postUpdate = () => {
         {
             const halfX = this.player.pos.width * 0.5;
             const halfY = this.player.pos.height * 0.5;
@@ -244,11 +242,7 @@ class ScenePlay extends Iremono {
 }
 class Player extends Moji {
     constructor() {
-        super(Util.ParseUnicode(emojiGhost));
-        this.size = 40;
-        this.color = '#de858c';
-        this.center();
-        this.middle();
+        super(Util.ParseUnicode(emojiGhost), { size: 40, color: '#de858c', isCenter: true, isMiddle: true });
         this.pos.x = game.canvas.width * 0.5;
         this.pos.y = game.canvas.height * 0.5;
         this.bulletCooltime = 0;
@@ -285,7 +279,7 @@ class Player extends Moji {
                 bullet.pos.y = this.pos.y - this.pos.height * 0.5;
                 bullet.pos.vy = -400;
             } else {
-                this.bulletCooltime -= 1 * delta;
+                this.bulletCooltime -= 1 * game.delta;
             }
         }
     }
