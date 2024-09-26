@@ -9,6 +9,8 @@ const emojiCrow = 'f520';
 const playerMoveSpeed = 600;
 const playerBulletRate = 1 / 20;
 
+console.log(Number(false)*25*0.5);
+
 class Game {
     constructor(width = 320, height = 480) {
         const link = document.createElement('link');
@@ -86,16 +88,19 @@ class Pos {
         this.x = this.y = 0;
         this.vx = this.vy = 0;
         this.width = this.height = 0;
-        this.alignX=this.alignY=0;
-        this._isCenter = true;
-        this._isMiddle = true;
-    }
-    apply(){
-        
+        this.isCenter = this.isMiddle = true;
     }
     update() {
+
         this.x += this.vx * game.delta;
         this.y += this.vy * game.delta;
+    }
+    getScreenPos = () => (this.x - (Number(this.isCenter) * this.width * 0.5), this.y - (Number(this.isMiddle) * this.height * 0.5))
+    getDrawPos() {
+        const {x, y} = this.getScreenPos();
+        if (x < -this.width || x > game.canvas.width) return undefined;
+        if (y < -this.height || y > game.canvas.height) return undefined;
+        return (x, y);
     }
 }
 class Iremono {
@@ -156,8 +161,8 @@ class Moji {
         this.color = color;
         this.font = font;
         this.weight = weight;
-        this._isCenter = isCenter;
-        this._isMiddle = isMiddle;
+        this.pos.isCenter = isCenter;
+        this.pos.isMiddle = isMiddle;
         this.baseLine = 'top';
         this.rotate = 0;
         this._applyText();
@@ -178,13 +183,11 @@ class Moji {
         this.pos.update();
     }
     draw() {
-        const x = this.pos.x - (Boolean(this._isCenter) * this.pos.width * 0.5);
-        const y = this.pos.y - (Boolean(this._isMiddle) * this.pos.height * 0.5);
-        if (x < -this.pos.width || x > game.canvas.width) return;
-        if (y < -this.pos.height || y > game.canvas.height) return;
+        const p = this.pos.getDrawPos();
+        if (!p) return;
         const ctx = game.canvas.getContext('2d');
         ctx.fillStyle = this.color;
-        ctx.fillText(this.text, x, y);
+        ctx.fillText(this.text, p.x, p.y);
     }
 }
 class Tofu {
@@ -197,13 +200,11 @@ class Tofu {
         this.pos.update();
     }
     draw() {
-        const x = this.pos.x - this.pos.width * 0.5;
-        const y = this.pos.y - this.pos.height * 0.5;;
-        if (x < -this.pos.width || x > game.canvas.width) return;
-        if (y < -this.pos.height || y > game.canvas.height) return;
+        const p = this.pos.getDrawPos();
+        if (!p) return;
         const ctx = game.canvas.getContext('2d');
         ctx.fillStyle = this.color;
-        ctx.fillRect(x, y, this.pos.width, this.pos.height);
+        ctx.fillRect(p.x, p.y, this.pos.width, this.pos.height);
     }
 }
 export const game = new Game();
