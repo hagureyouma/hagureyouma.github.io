@@ -56,7 +56,7 @@ class Game {
         const now = performance.now();
         this.delta = Math.min((now - this.time) / 1000.0, 1 / 60.0);
         this.time = now;
-        this.root.update(this.delta);
+        this.root._tick(this.delta);
         const ctx = this.canvas.getContext('2d');
         ctx.fillStyle = '#000000';
         ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
@@ -144,7 +144,7 @@ class Iremono {
         this.objs = [];
         this.reserves = {};
     }
-    addCreator(name, func,init=undefined) {
+    addCreator(name, func, init = undefined) {
         this.maker[name] = { func, init };
     }
     put(obj) {
@@ -170,11 +170,11 @@ class Iremono {
     add(obj) {
         this.objs.push(obj);
     }
-    update() {
-        this.preUpdate();
+    _tick() {
+        this.update();
         for (const obj of this.objs) {
             if (!obj.base.isExist) continue;
-            obj.update();
+            obj._tick();
         }
         this.postUpdate();
     }
@@ -184,7 +184,7 @@ class Iremono {
             obj.draw();
         }
     }
-    preUpdate() { }
+    update() { }
     postUpdate() { }
 }
 class Moji {
@@ -201,8 +201,9 @@ class Moji {
         this.baseLine = 'top';
         this.rotate = 0;
     }
-    update() {
+    _tick() {
         this.pos.update();
+        this.update();
     }
     draw() {
         const ctx = game.canvas.getContext('2d');
@@ -217,6 +218,7 @@ class Moji {
         ctx.fillStyle = this.color;
         ctx.fillText(this.text, x, y);
     }
+    update(){}
 }
 class Tofu {
     constructor() {
@@ -224,7 +226,7 @@ class Tofu {
         this.pos = new Pos();
         this.color = '#ffffff';
     }
-    update() {
+    _tick() {
         this.pos.update();
     }
     draw() {
@@ -267,14 +269,14 @@ class ScenePlay extends Iremono {
         this.player = new Player();
         this.add(this.player);
         this.add(this.player.bullets);
-        this.enemies = new Baddies();
-        this.add(this.enemies);
-        this.add(this.enemies.bullets);
+        this.baddies = new Baddies();
+        this.add(this.baddies);
+        this.add(this.baddies.bullets);
         this.fiber = new Fiber();
         this.stage;
         this.stageStart(stage1);
     }
-    preUpdate = () => {
+    update = () => {
         this.fiber.update();
         this.player.preUpdate();
     }
@@ -296,10 +298,15 @@ class ScenePlay extends Iremono {
         this.stage = stage;
         this.fiber.add(this.stageRunner(stage));
     }
-    stageRunner = function* (stage) {
-        for (const d of stage) {
-            yield d.time;
-            this.Baddies.Spawn(d.x, d.y, d.name);
+    *stageRunner(stage) {
+        const temp = [...stage].sort((a, b) => a.time < b.time);
+        let timeCounter = 0;
+        for (const d of temp) {
+            while (d.time > timeCounter) {
+                timeCounter += game.delta;
+                yield undefined;
+            }
+            this.baddies.spawn(d.x, d.y, d.name);
         }
     }
 }
@@ -359,7 +366,7 @@ class Baddies extends Iremono {
         this.bullets = new Iremono();
         this.bullets.addCreator(Tofu.name, () => new Tofu());
     }
-    Spawn(x, y, name) {
+    spawn(x, y, name) {
         const bad = this.get(name);
         bad.pos.x = x;
         bad.pos.y = y;
