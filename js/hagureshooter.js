@@ -22,7 +22,7 @@ class Game {
         document.querySelector('body').appendChild(this.canvas);
         this.canvas.width = width;
         this.canvas.height = height;
-        this.root = new Iremono();
+        this.root = new Actor(new Bag());
         this.key = {};
         this.input = {};
         this.time;
@@ -51,9 +51,9 @@ class Game {
         game.keyBind('left', 'ArrowLeft');
         game.keyBind('right', 'ArrowRight');
         this.time = performance.now();
-        this.tick();
+        this.update();
     }
-    tick() {
+    update() {
         const now = performance.now();
         this.delta = Math.min((now - this.time) / 1000.0, 1 / 60.0);
         this.time = now;
@@ -62,7 +62,7 @@ class Game {
         ctx.fillStyle = '#000000';
         ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
         this.root.draw();
-        requestAnimationFrame(this.tick.bind(this));
+        requestAnimationFrame(this.update.bind(this));
     }
     add(scene) {
         this.root.add(scene);
@@ -77,6 +77,35 @@ class Util {
     static get nanameCorrect() { return 0.71 };
     static parseUnicode = (code) => String.fromCharCode(parseInt(code, 16));
     static clamp = (value, min, max) => Math.min(Math.max(value, min), max);
+}
+class Actor {
+    constructor(...arg) {
+        this.id = -1;
+        this.isExist = true;
+        this.putback;
+        this.mixs = [];
+        for (const mix of arg) {
+            this.add(mix);
+        }
+    }
+    update() {
+        if (!this.isExist) return;
+        for (const mix of this.mixs) {
+            mix.update?.();
+        }
+    }
+    draw() {
+        if (!this.isExist) return;
+        for (const mix of this.mixs) {
+            mix.draw();
+        }
+    }
+    add(mix) {
+        const name = mix.constructor.name.toLowerCase();
+        if (name in this) return;
+        this[name] = mix;
+        this.mixs.push(mix);
+    }
 }
 class Fiber {
     constructor() {
@@ -118,39 +147,11 @@ function* waitForFrag(func) {
         yield null;
     }
 }
-
-class Actor {
-    constructor(...arg) {
-        this.id = -1;
-        this.isExist = true;
-        this.putback;
-        this.mixs = [];
-        for (const mix of arg) {
-            this.add(mix);
-        }
-    }
-    update() {
-        if (!this.isExist) return;
-        for (const mix of this.mixs) {
-            mix.update();
-        }
-    }
-    draw() {
-        if (!this.isExist) return;
-        for (const mix of this.mixs) {
-            mix.draw();
-        }
-    }
-    add(mix) {
-        this.mixs.push(mix);
-        this[mix.prototype.name.toUpperCase()] = mix;
-    }
-}
 class Pos {
     constructor() {
         this.x = this.y = 0;
         this.width = this.height = 0;
-        this.isCenter = this.isMiddle = true;
+        this.isCenter = this.isMiddle = false;
         this.vx = this.vy = 0;
     }
     update() {
@@ -167,7 +168,7 @@ class Pos {
         return ox + other.width > x && x + this.width > ox && oy + other.height > y && y + this.height > oy;
     }
 }
-class Iremono {
+class Bag {
     constructor() {
         this.maker = {};
         this.objs = [];
@@ -199,35 +200,32 @@ class Iremono {
     }
     update() {
         for (const obj of this.objs) {
-            if (!obj.base.isExist) continue;
             obj.update();
         }
         this.postUpdate();
     }
     draw() {
         for (const obj of this.objs) {
-            if (!obj.base.isExist) continue;
             obj.draw();
         }
     }
     postUpdate() { }
     each(func) {
         for (const obj of this.objs) {
-            if (!obj.base.isExist) continue;
+            if (!obj.isExist) continue;
             func(obj);
         }
     }
 }
 class Moji {
     constructor(owner) {
-        owner.add(new Pos());
-        this.text = text;
-        this.size = size;
-        this.color = color;
-        this.font = font;
-        this.weight = weight;
-        this.pos.isCenter = isCenter;
-        this.pos.isMiddle = isMiddle;
+        this.owner=owner;
+        this.owner.add(new Pos());
+        this.text = '';
+        this.size = 0;
+        this.color = '#ffffff';
+        this.font = 0;
+        this.weight = 'normal';
         this.baseLine = 'top';
         this.rotate = 0;
     }
@@ -237,35 +235,38 @@ class Moji {
         this.color = color;
         this.font = font;
         this.weight = weight;
-        this.pos.isCenter = isCenter;
-        this.pos.isMiddle = isMiddle;
+        this.owner.pos.isCenter = isCenter;
+        this.owner.pos.isMiddle = isMiddle;
     }
     draw() {
         const ctx = game.canvas.getContext('2d');
         ctx.font = `${this.weight} ${this.size}px ${this.font}`;
         ctx.textBaseline = this.baseLine;
         const tm = ctx.measureText(this.text);
-        this.pos.width = tm.width;
-        this.pos.height = Math.abs(tm.actualBoundingBoxAscent) + Math.abs(tm.actualBoundingBoxDescent);
-        const x = this.pos.getScreenX();
-        const y = this.pos.getScreenY();
-        if (game.isOutOfRange(x, y, this.pos.width, this.pos.height)) return;
+        const pos=this.owner.pos;
+        pos.width = tm.width;
+        pos.height = Math.abs(tm.actualBoundingBoxAscent) + Math.abs(tm.actualBoundingBoxDescent);
+        const x = pos.getScreenX();
+        const y = pos.getScreenY();
+        if (game.isOutOfRange(x, y, pos.width, pos.height)) return;
         ctx.fillStyle = this.color;
         ctx.fillText(this.text, x, y);
     }
 }
 class Square {
     constructor(owner) {
-        owner.add(new Pos());
+        this.owner=owner;
+        this.owner.add(new Pos());
         this.color = '#ffffff';
     }
     draw() {
-        const x = this.pos.getScreenX();
-        const y = this.pos.getScreenY();
-        if (game.isOutOfRange(x, y, this.pos.width, this.pos.height)) return;
+        const pos=this.owner.pos;
+        const x = pos.getScreenX();
+        const y = pos.getScreenY();
+        if (game.isOutOfRange(x, y, pos.width, pos.height)) return;
         const ctx = game.canvas.getContext('2d');
         ctx.fillStyle = this.color;
-        ctx.fillRect(x, y, this.pos.width, this.pos.height);
+        ctx.fillRect(x, y, pos.width, pos.height);
     }
 }
 class Tofu extends Actor {
@@ -294,27 +295,28 @@ stage1.push(new SpawnData(2, 50, 50, 'obake'));
 // stage1.push(new SpawnData(4, 200, 50, 'obake'));
 
 
-class ScenePlay extends Iremono {
+class ScenePlay extends Actor {
     constructor() {
         super();
-        this.text = new Moji('シューティングゲームだよ', { size: 25, color: '#666666', isCenter: true, isMiddle: true });
+        this.add(new Fiber());
+        this.add(new Bag());
+        this.bag.postUpdate = this._postUpdate;
+        this.text=new Actor();
+        this.text.add(new Moji(this.text));
+        this.text.moji.set('シューティングゲームだよ', { size: 25, color: '#666666', isCenter: true, isMiddle: true });
         this.text.pos.x = game.canvas.width * 0.5;
         this.text.pos.y = game.canvas.height * 0.5;
-        this.add(this.text);
+        this.bag.add(this.text);
         this.player = new Player();
-        this.add(this.player.bullets);
-        this.add(this.player);
+        this.bag.add(this.player.bullets);
+        this.bag.add(this.player);
         this.baddies = new Baddies();
-        this.add(this.baddies.bullets);
-        this.add(this.baddies);
-        this.fiber = new Fiber();
+        this.bag.add(this.baddies.bullets);
+        this.bag.add(this.baddies);
         this.stage;
         this.stageStart(stage1);
     }
-    update = () => {
-        this.fiber.update();
-    }
-    postUpdate = () => {
+    _postUpdate = () => {
         {
             const halfX = this.player.pos.width * 0.5;
             const halfY = this.player.pos.height * 0.5;
@@ -322,22 +324,22 @@ class ScenePlay extends Iremono {
             this.player.pos.y = Util.clamp(halfY, this.player.pos.y, game.canvas.height - halfY);
         }
         {
-            this.player.bullets.each((bullet) => {
-                if (game.isOutOfRange(bullet.pos.getScreenX(), bullet.pos.getScreenY(), bullet.pos.width, bullet.pos.height)) bullet.base.putback();
-                this.baddies.each((baddie) => {
+            this.player.bullets.bag.each((bullet) => {
+                if (game.isOutOfRange(bullet.pos.getScreenX(), bullet.pos.getScreenY(), bullet.pos.width, bullet.pos.height)) bullet.putback();
+                this.baddies.bag.each((baddie) => {
                     if (!bullet.pos.isIntersect(baddie.pos)) return;
                     console.log('ぐわぁぁぁ');
-                    bullet.base.putback();
-                    baddie.base.putback();
+                    bullet.putback();
+                    baddie.putback();
                 })
             });
         }
         {
-            this.baddies.bullets.each((bullet) => {
-                if (game.isOutOfRange(bullet.pos.getScreenX(), bullet.pos.getScreenY(), bullet.pos.width, bullet.pos.height)) bullet.base.putback();
+            this.baddies.bullets.bag.each((bullet) => {
+                if (game.isOutOfRange(bullet.pos.getScreenX(), bullet.pos.getScreenY(), bullet.pos.width, bullet.pos.height)) bullet.putback();
                 if (!bullet.pos.isIntersect(this.player.pos)) return;
                 console.log('ぎにゃー');
-                bullet.base.putback();
+                bullet.putback();
             })
         }
     }
@@ -360,20 +362,16 @@ class ScenePlay extends Iremono {
 class Player extends Actor {
     constructor() {
         super();
-        const player = {};
-        player['update'] = this.update;
-        player['draw'];
-        this.add(player);
-
-        this.add(new Moji(Util.parseUnicode(emojiCat), { size: 40, color: '#de858c', isCenter: true, isMiddle: true }));
-        this.moji.set();
+        this.add({ update: this._update, draw: ()=>{} });
+        this.add(new Moji(this));
+        this.moji.set(Util.parseUnicode(emojiCat), { size: 40, color: '#de858c', isCenter: true, isMiddle: true });
         this.pos.x = game.canvas.width * 0.5;
         this.pos.y = game.canvas.height * 0.5;
         this.bulletCooltime = 0;
-        this.bullets = new Actor(new Iremono());
-        this.bullets.iremono.addCreator(Tofu.name, () => new Tofu());
+        this.bullets = new Actor(new Bag());
+        this.bullets.bag.addCreator(Tofu.name, () => new Tofu());
     }
-    update() {
+    _update() {        
         this.pos.vx = 0;
         this.pos.vy = 0;
         if (game.input.left) {
@@ -395,10 +393,10 @@ class Player extends Actor {
         if (game.input.space) {
             if (this.bulletCooltime < 0) {
                 this.bulletCooltime = playerBulletRate;
-                const bullet = this.bullets.get(Tofu.name);
+                const bullet = this.bullets.bag.get(Tofu.name);
                 bullet.pos.width = 4;
                 bullet.pos.height = 4;
-                bullet.color = '#ffffff';
+                bullet.square.color = '#ffffff';
                 bullet.pos.x = this.pos.x;
                 bullet.pos.y = this.pos.y;
                 bullet.pos.vy = -400;
@@ -408,38 +406,41 @@ class Player extends Actor {
         }
     }
 }
-class Baddies extends Iremono {
+class Baddies extends Actor {
     constructor() {
         super();
-        this.addCreator('obake', () => new Baddie(), (bad) => {
-            bad.text = Util.parseUnicode(emojiGhost);
+        this.add(new Bag());
+        this.bag.addCreator('obake', () => new Baddie(), (bad) => {
+            bad.moji.text = Util.parseUnicode(emojiGhost);
         });
-        this.addCreator('crow', () => new Baddie(), (bad) => {
-            bad.text = Util.parseUnicode(emojiCrow);
+        this.bag.addCreator('crow', () => new Baddie(), (bad) => {
+            bad.moji.text = Util.parseUnicode(emojiCrow);
         });
-        this.bullets = new Iremono();
-        this.bullets.addCreator(Tofu.name, () => new Tofu());
+        this.bullets = new Actor(new Bag());
+        this.bullets.bag.addCreator(Tofu.name, () => new Tofu());
     }
     spawn(x, y, name) {
-        const bad = this.get(name);
+        const bad = this.bag.get(name);
         bad.pos.x = x;
         bad.pos.y = y;
         bad.bullets = this.bullets;
     }
 }
-class Baddie extends Moji {
+class Baddie extends Actor {
     constructor() {
-        super('', { size: 40, color: '#999999', isCenter: true, isMiddle: true });
+        super();
+        this.add(new Moji(this));
+        this.moji.set('', { size: 40, color: '#999999', isCenter: true, isMiddle: true });
         this.bullets;
         this.bulletCooltime = 0;
     }
     update() {
         if (this.bulletCooltime < 0) {
             this.bulletCooltime = baddiesBulletRate;
-            const bullet = this.bullets.get(Tofu.name);
+            const bullet = this.bullets.bag.get(Tofu.name);
             bullet.pos.width = 4;
             bullet.pos.height = 4;
-            bullet.color = '#ffffff';
+            bullet.square.color = '#ffffff';
             bullet.pos.x = this.pos.x;
             bullet.pos.y = this.pos.y;
             bullet.pos.vy = 200;
