@@ -57,7 +57,7 @@ class Game {
         const now = performance.now();
         this.delta = Math.min((now - this.time) / 1000.0, 1 / 60.0);
         this.time = now;
-        this.root.tick();
+        this.root.update();
         const ctx = this.canvas.getContext('2d');
         ctx.fillStyle = '#000000';
         ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
@@ -119,14 +119,32 @@ function* waitForFrag(func) {
     }
 }
 
-class Base {
-    constructor() {
+class Actor {
+    constructor(...arg) {
         this.id = -1;
         this.isExist = true;
         this.putback;
+        this.mixs = [];
+        for (const mix of arg) {
+            this.add(mix);
+        }
     }
-    update() { }
-    draw() { }
+    update() {
+        if (!this.isExist) return;
+        for (const mix of this.mixs) {
+            mix.update();
+        }
+    }
+    draw() {
+        if (!this.isExist) return;
+        for (const mix of this.mixs) {
+            mix.draw();
+        }
+    }
+    add(mix) {
+        this.mixs.push(mix);
+        this[mix.prototype.name.toUpperCase()] = mix;
+    }
 }
 class Pos {
     constructor() {
@@ -151,7 +169,6 @@ class Pos {
 }
 class Iremono {
     constructor() {
-        this.base = new Base();
         this.maker = {};
         this.objs = [];
         this.reserves = {};
@@ -164,27 +181,26 @@ class Iremono {
         if (!(name in this.reserves)) this.reserves[name] = [];
         if (this.reserves[name].length === 0) {
             obj = this.maker[name].func();
-            obj.base.id = this.objs.length;
-            obj.base.putback = () => {
-                obj.base.isExist = false;
-                this.reserves[name].push(obj.base.id);
+            obj.id = this.objs.length;
+            obj.putback = () => {
+                obj.isExist = false;
+                this.reserves[name].push(obj.id);
             }
             this.objs.push(obj);
         } else {
             obj = this.objs[this.reserves[name].pop()];
         }
-        obj.base.isExist = true;
+        obj.isExist = true;
         this.maker[name].init?.(obj)
         return obj;
     }
     add(obj) {
         this.objs.push(obj);
     }
-    tick() {
-        this.update();
+    update() {
         for (const obj of this.objs) {
             if (!obj.base.isExist) continue;
-            obj.tick();
+            obj.update();
         }
         this.postUpdate();
     }
@@ -194,7 +210,6 @@ class Iremono {
             obj.draw();
         }
     }
-    update() { }
     postUpdate() { }
     each(func) {
         for (const obj of this.objs) {
@@ -204,9 +219,8 @@ class Iremono {
     }
 }
 class Moji {
-    constructor(text = '', { size = 20, color = '#ffffff', font = 'FontAwesome', weight = 'normal', isCenter = false, isMiddle = false } = {}) {
-        this.base = new Base();
-        this.pos = new Pos();
+    constructor(owner) {
+        owner.add(new Pos());
         this.text = text;
         this.size = size;
         this.color = color;
@@ -217,9 +231,14 @@ class Moji {
         this.baseLine = 'top';
         this.rotate = 0;
     }
-    tick() {
-        this.pos.update();
-        this.update();
+    set(text = '', { size = 20, color = '#ffffff', font = 'FontAwesome', weight = 'normal', isCenter = false, isMiddle = false } = {}) {
+        this.text = text;
+        this.size = size;
+        this.color = color;
+        this.font = font;
+        this.weight = weight;
+        this.pos.isCenter = isCenter;
+        this.pos.isMiddle = isMiddle;
     }
     draw() {
         const ctx = game.canvas.getContext('2d');
@@ -234,17 +253,11 @@ class Moji {
         ctx.fillStyle = this.color;
         ctx.fillText(this.text, x, y);
     }
-    update() { }
 }
-class Tofu {
-    constructor() {
-        this.base = new Base();
-        this.pos = new Pos();
+class Square {
+    constructor(owner) {
+        owner.add(new Pos());
         this.color = '#ffffff';
-    }
-    tick() {
-        this.pos.update();
-        this.update();
     }
     draw() {
         const x = this.pos.getScreenX();
@@ -254,7 +267,11 @@ class Tofu {
         ctx.fillStyle = this.color;
         ctx.fillRect(x, y, this.pos.width, this.pos.height);
     }
-    update() { }
+}
+class Tofu extends Actor {
+    constructor() {
+        this.add(Square(this));
+    }
 }
 export const game = new Game();
 game.keyBind('space', ' ');
@@ -340,14 +357,21 @@ class ScenePlay extends Iremono {
         }
     }
 }
-class Player extends Moji {
+class Player extends Actor {
     constructor() {
-        super(Util.parseUnicode(emojiCat), { size: 40, color: '#de858c', isCenter: true, isMiddle: true });
+        super();
+        const player = {};
+        player['update'] = this.update;
+        player['draw'];
+        this.add(player);
+
+        this.add(new Moji(Util.parseUnicode(emojiCat), { size: 40, color: '#de858c', isCenter: true, isMiddle: true }));
+        this.moji.set();
         this.pos.x = game.canvas.width * 0.5;
         this.pos.y = game.canvas.height * 0.5;
         this.bulletCooltime = 0;
-        this.bullets = new Iremono();
-        this.bullets.addCreator(Tofu.name, () => new Tofu());
+        this.bullets = new Actor(new Iremono());
+        this.bullets.iremono.addCreator(Tofu.name, () => new Tofu());
     }
     update() {
         this.pos.vx = 0;
