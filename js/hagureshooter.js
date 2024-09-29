@@ -225,14 +225,14 @@ class Moji {
         this.baseLine = 'top';
         this.rotate = 0;
     }
-    create=(text, option = { size = 20, color = '#ffffff', font = 'FontAwesome', weight = 'normal', isCenter = false, isMiddle = false }={})=>new Mono().add(new Moji()).moji.init(text,option);
+    create = (text, option = { size = 20, color = '#ffffff', font = 'FontAwesome', weight = 'normal', isCenter = false, isMiddle = false } = {}) => new Mono().add(new Moji()).moji.init(text, option);
     init(text, { size = this.size, color = this.color, font = this.font, weight = this.weight, isCenter = this.isCenter, isMiddle = this.isMiddle } = {}) {
         this.text = text;
         this.size = size;
         this.color = color;
         this.font = font;
         this.weight = weight;
-        this.owner.add(new Pos);
+        this.owner.add(new Pos());
         this.owner.pos.isCenter = isCenter;
         this.owner.pos.isMiddle = isMiddle;
         return this.owner;
