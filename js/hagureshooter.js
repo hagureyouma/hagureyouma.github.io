@@ -9,10 +9,10 @@ const emojiCrow = 'f520';
 
 const playerMoveSpeed = 600;
 const playerBulletRate = 1 / 20;
-const baddiesBulletRate = 1 / 1;
+const baddiesBulletRate = 1 / 2;
 
 class Game {
-    constructor(width = 320, height = 480) {
+    constructor(width = 640, height = 480) {
         document.querySelector('head').insertAdjacentHTML('beforeend', `<link rel="stylesheet" type="text/css" href="${iconUrl}" /> `);
         this.canvas = document.createElement('canvas');
         document.querySelector('body').appendChild(this.canvas);
@@ -42,10 +42,10 @@ class Game {
         }
         addEventListener('keydown', _keyEvent, { passive: false });
         addEventListener('keyup', _keyEvent, { passive: false });
-        game.keyBind('up', 'ArrowUp');
-        game.keyBind('down', 'ArrowDown');
-        game.keyBind('left', 'ArrowLeft');
-        game.keyBind('right', 'ArrowRight');
+        game.keybind('up', 'ArrowUp');
+        game.keybind('down', 'ArrowDown');
+        game.keybind('left', 'ArrowLeft');
+        game.keybind('right', 'ArrowRight');
         this.time = performance.now();
         this.update();
     }
@@ -53,7 +53,7 @@ class Game {
         const now = performance.now();
         this.delta = Math.min((now - this.time) / 1000.0, 1 / 60.0);
         this.time = now;
-        this.root.update();
+        this.root.baseUpdate();
         const ctx = this.canvas.getContext('2d');
         ctx.fillStyle = '#000000';
         ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
@@ -63,7 +63,7 @@ class Game {
     add(scene) {
         this.root.hako.add(scene);
     }
-    keyBind(name, key) {
+    keybind(name, key) {
         this.key[name] = key;
         this.input[name] = false;
     }
@@ -71,19 +71,31 @@ class Game {
 }
 class Util {
     static get nanameCorrect() { return 0.71 };
+    static get radian() { return Math.PI / 180 };
+    static get degree() { return 180 / Math.PI };
     static parseUnicode = (code) => String.fromCharCode(parseInt(code, 16));
     static clamp = (value, min, max) => Math.min(Math.max(value, min), max);
+    static degToX = (deg) => Math.cos(deg * Util.radian);
+    static degToY = (deg) => -Math.sin(deg * Util.radian);
+    static xyToDeg(x, y) {
+        var r = Math.atan2(-y, x);
+        if (r < 0) r += 2 * Math.PI;
+        return r * Util.degree;
+    }
+    static random = (min, max) => Math.floor(Math.random() * (max + 1 - min) + min);
 }
 class Mono {
-    constructor(arg) {
+    constructor(...args) {
         this.isExist = true;
         this.mixs = [];
-        if (Array.isArray(arg)) {
-            for (const mix of arg) {
-                this.addMix(mix);
+        for (const arg of args) {
+            if (Array.isArray(arg)) {
+                for (const mix of arg) {
+                    this.addMix(mix);
+                }
+            } else {
+                this.addMix(arg);
             }
-        } else {
-            this.addMix(arg);
         }
     }
     addMix(mix) {
@@ -94,12 +106,16 @@ class Mono {
         this.mixs.push(mix);
         return this;
     }
-    update() {
+    baseUpdate() {
         if (!this.isExist) return;
+        this.update();
         for (const mix of this.mixs) {
             mix.update?.();
         }
+        this.postUpdate();
     }
+    update() { }
+    postUpdate() { }
     draw() {
         if (!this.isExist) return;
         for (const mix of this.mixs) {
@@ -198,21 +214,24 @@ class Hako {
     }
     update() {
         for (const obj of this.objs) {
-            obj.update();
+            obj.baseUpdate();
         }
-        this.postUpdate();
     }
     draw() {
         for (const obj of this.objs) {
             obj.draw();
         }
     }
-    postUpdate() { }
     each(func) {
         for (const obj of this.objs) {
             if (!obj.isExist) continue;
             func(obj);
         }
+    }
+}
+class Iremono extends Mono {
+    constructor() {
+        super(new Hako());
     }
 }
 class Moji {
@@ -225,11 +244,16 @@ class Moji {
         this.weight = weight;
         this.baseLine = 'top';
         this.rotate = 0;
+        this.watch;
         pos.isCenter = isCenter;
         pos.isMiddle = isMiddle;
         return [pos, this];
     }
-    static create = (text, { size = 20, color = '#ffffff', font = 'FontAwesome', weight = 'normal', isCenter = false, isMiddle = false } = {}) => new Mono(new Moji(text, { size, color, font, weight, isCenter, isMiddle }));
+    update() {
+        if (this.watch) {
+            this.text = this.watch();
+        }
+    }
     draw() {
         const ctx = game.canvas.getContext('2d');
         ctx.font = `${this.weight} ${this.size}px ${this.font}`;
@@ -245,12 +269,16 @@ class Moji {
         ctx.fillText(this.text, x, y);
     }
 }
-class Tofu {
+class Bun extends Mono {
+    constructor(text, { size = 20, color = '#ffffff', font = 'FontAwesome', weight = 'normal', isCenter = false, isMiddle = false } = {}) {
+        super(new Moji(text, { size, color, font, weight, isCenter, isMiddle }));
+    }
+}
+class Brush {
     constructor() {
         this.color = '#ffffff';
         return [new Pos(), this];
     }
-    static create = () => new Mono(new Tofu());
     draw() {
         const pos = this.owner.pos;
         const x = pos.getScreenX();
@@ -261,8 +289,13 @@ class Tofu {
         ctx.fillRect(x, y, pos.width, pos.height);
     }
 }
+class Tofu extends Mono {
+    constructor() {
+        super(new Brush());
+    }
+}
 export const game = new Game();
-game.keyBind('space', ' ');
+game.keybind('space', ' ');
 
 export const con = {};
 
@@ -287,36 +320,37 @@ class SpawnData {
 con.stages = [];
 const stage1 = [];
 con.stages.push(stage1);
-stage1.push(new SpawnData(2, 50, 50, 'obake'));
+stage1.push(new SpawnData(2, 160, 50, 'obake'));
 // stage1.push(new SpawnData(2, 100, 50, 'obake'));
 // stage1.push(new SpawnData(3, 150, 50, 'obake'));
 // stage1.push(new SpawnData(4, 200, 50, 'obake'));
 
-
-
 export const data = {};
 data.score = 0;
 
-class ScenePlay {
+class ScenePlay extends Mono {
     constructor() {
-        const hako = new Hako();
-        hako.add(this.text = Moji.create('シューティングゲームだよ', { size: 25, color: '#666666', isCenter: true, isMiddle: true }));
+        super(new Fiber(), new Hako());
+        this.hako.add(this.textScore = new Bun());
+        this.textScore.moji.watch = () => `SCORE ${data.score}`;
+        this.textScore.pos.x = 2;
+        this.textScore.pos.y = 2;
+
+        this.hako.add(this.text = new Bun('シューティングゲームだよ', { size: 25, color: '#666666', isCenter: true, isMiddle: true }));
         this.text.pos.x = game.canvas.width * 0.5;
         this.text.pos.y = game.canvas.height * 0.5
 
-        this.player = Player.create();
-        hako.add(this.player.player.bullets);
-        hako.add(this.player);
+        this.player = new Player();
+        this.hako.add(this.player.bullets);
+        this.hako.add(this.player);
 
-        hako.add(this.baddiesbullets = Baddie.createBullets());
-        hako.add(this.baddies = Baddie.createBaddies());
+        this.hako.add(this.baddiesbullets = Baddie.createBullets());
+        this.hako.add(this.baddies = Baddie.createBaddies());
 
-        const fiber = new Fiber();
-        fiber.add(this.stageRunner(con.stages[0]));
-        return [fiber, hako, this];
+        // this.fiber.add(this.stageRunner(con.stages[0]));
+        this.fiber.add(this.stageRunner2());
     }
-    static create = () => new Mono(new ScenePlay());
-    update() {
+    postUpdate() {
         {
             const halfX = this.player.pos.width * 0.5;
             const halfY = this.player.pos.height * 0.5;
@@ -324,13 +358,13 @@ class ScenePlay {
             this.player.pos.y = Util.clamp(halfY, this.player.pos.y, game.canvas.height - halfY);
         }
         {
-            this.player.player.bullets.hako.each((bullet) => {
+            this.player.bullets.hako.each((bullet) => {
                 if (game.isOutOfRange(bullet.pos.getScreenX(), bullet.pos.getScreenY(), bullet.pos.width, bullet.pos.height)) bullet.putback();
                 this.baddies.hako.each((baddie) => {
                     if (!bullet.pos.isIntersect(baddie.pos)) return;
                     console.log('ぐわぁぁぁ');
                     bullet.putback();
-                    baddie.putback();
+                    if (baddie.hit(1)) baddie.putback();
                 })
             });
         }
@@ -354,26 +388,46 @@ class ScenePlay {
             this.spawnBaddie(d.x, d.y, d.name);
         }
     }
+    *stageRunner2() {
+        let timeCounter = 0;
+        while (data.score < 100000) {
+            if(this.baddies.hako.objs.length>100){
+                yield undefined;
+                continue;
+            }
+            if (timeCounter < 0) {
+                timeCounter = 0;
+                this.spawnBaddie(Util.random(30, game.canvas.width-30), Util.random(30, game.canvas.height*0.5), 'obake');
+            } else {
+                timeCounter -= 1 * game.delta;
+            }
+            yield undefined;
+        }
+    }
     spawnBaddie(x, y, name) {
         const bad = this.baddies.hako.get(name);
         bad.pos.x = x;
         bad.pos.y = y;
-        bad.baddie.bullets = this.baddiesbullets;
+        bad.bullets = this.baddiesbullets;
     }
 }
-class Player {
+class Player extends Mono {
     constructor() {
-        const [pos, moji] = new Moji(Util.parseUnicode(emojiCat), { size: 40, color: '#de858c', isCenter: true, isMiddle: true });
-        pos.x = game.canvas.width * 0.5;
-        pos.y = game.canvas.height * 0.5;
+        super(new Moji(Util.parseUnicode(emojiCat), { size: 40, color: '#de858c', isCenter: true, isMiddle: true }));
+        this.pos.x = game.canvas.width * 0.5;
+        this.pos.y = game.canvas.height * 0.5;
         this.bulletCooltime = 0;
-        this.bullets = Hako.create();
-        this.bullets.hako.addCreator(Tofu.name, () => Tofu.create());
-        return [pos, moji, this];
+        this.bullets = new Iremono();
+        this.bullets.hako.addCreator(Tofu.name, () => new Tofu(), (bullet) => {
+            bullet.pos.width = 4;
+            bullet.pos.height = 4;
+            bullet.pos.isCenter = true;
+            bullet.pos.isMiddle = true;
+            bullet.brush.color = '#9999ff';
+        });
     }
-    static create = () => new Mono(new Player);
     update() {
-        const pos = this.owner.pos;
+        const pos = this.pos;
         pos.vx = 0;
         pos.vy = 0;
         if (game.input.left) {
@@ -395,56 +449,75 @@ class Player {
         if (game.input.space) {
             if (this.bulletCooltime < 0) {
                 this.bulletCooltime = playerBulletRate;
-                const bullet = this.bullets.hako.get(Tofu.name);
-                bullet.pos.width = 4;
-                bullet.pos.height = 4;
-                bullet.tofu.color = '#ffffff';
-                bullet.pos.x = pos.x;
-                bullet.pos.y = pos.y;
-                bullet.pos.vy = -400;
+                let lr = -1;
+                for (let i = 0; i < 2; i++) {
+                    const bullet = this.bullets.hako.get(Tofu.name);
+                    bullet.pos.x = pos.x + (10 * lr);
+                    bullet.pos.y = pos.y;
+                    bullet.pos.vy = -400;
+                    lr *= -1;
+                }
             } else {
                 this.bulletCooltime -= 1 * game.delta;
             }
         }
     }
 }
-class Baddie {
-    constructor(char, hp) {
-        const [pos, moji] = new Moji(char, { size: 40, color: '#999999', isCenter: true, isMiddle: true });
-        this.hp = hp;
+class Baddie extends Mono {
+    constructor(char) {
+        super(new Moji(char, { size: 40, color: '#999999', isCenter: true, isMiddle: true }))
+        this.hp = 0;
         this.bullets;
         this.bulletCooltime = 0;
-        return [pos, moji, this];
     }
-    static create = (name,hp) => new Mono(new Baddie(name,hp));
     static createBaddies() {
-        const baddies = Hako.create();
+        const baddies = new Iremono();
         for (const bad of Object.values(con.baddies)) {
-            baddies.hako.addCreator(bad.name, () => Baddie.create(Util.parseUnicode(bad.char),bad.hp));
+            baddies.hako.addCreator(bad.name, () => new Baddie(Util.parseUnicode(bad.char)), (baddie) => {
+                baddie.hp = bad.hp;
+            });
         }
         return baddies;
     }
     static createBullets() {
-        const bullets = Hako.create();
-        bullets.hako.addCreator(Tofu.name, () => Tofu.create());
+        const bullets = new Iremono();
+        bullets.hako.addCreator(Tofu.name, () => new Tofu(), (bullet) => {
+            bullet.pos.width = 4;
+            bullet.pos.height = 4;
+            bullet.pos.isCenter = true;
+            bullet.pos.isMiddle = true;
+            bullet.brush.color = '#ff9999';
+        });
         return bullets;
     }
     update() {
         if (this.bulletCooltime < 0) {
             this.bulletCooltime = baddiesBulletRate;
-            const pos=this.owner.pos;
-            const bullet = this.bullets.hako.get(Tofu.name);
-            bullet.tofu.color = '#ffffff';
-            bullet.pos.width = 4;
-            bullet.pos.height = 4;
-            bullet.pos.x = pos.x;
-            bullet.pos.y = pos.y;
+            let bullet = this.bullets.hako.get(Tofu.name);
+            bullet.pos.x = this.pos.x;
+            bullet.pos.y = this.pos.y;
+            bullet.pos.vx = 0;
             bullet.pos.vy = 200;
+            let d = Util.xyToDeg(0, 200);
+            bullet = this.bullets.hako.get(Tofu.name);
+            bullet.pos.x = this.pos.x;
+            bullet.pos.y = this.pos.y;
+            bullet.pos.vx = Util.degToX(d + 10 % 360) * 200;
+            bullet.pos.vy = Util.degToY(d + 10 % 360) * 200;
+            bullet = this.bullets.hako.get(Tofu.name);
+            bullet.pos.x = this.pos.x;
+            bullet.pos.y = this.pos.y;
+            bullet.pos.vx = Util.degToX(d - 10 % 360) * 200;
+            bullet.pos.vy = Util.degToY(d - 10 % 360) * 200;
         } else {
             this.bulletCooltime -= 1 * game.delta;
         }
     }
-
+    hit(damage) {
+        this.hp -= damage;
+        data.score += 100;
+        return this.hp <= 0;
+    }
 }
-game.add(ScenePlay.create());
+game.add(new ScenePlay());
 game.start();
