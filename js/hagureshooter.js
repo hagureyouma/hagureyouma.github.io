@@ -23,6 +23,8 @@ class Game {
         this.input = {};
         this.time;
         this.delta;
+        this.fps;
+        this.fpsBuffer = [];
     }
     start(init) {
         //todo:preload?
@@ -68,6 +70,32 @@ class Game {
         this.input[name] = false;
     }
     isOutOfRange = (x, y, width, height) => x + width < 0 || x > this.canvas.width || y + height < 0 || y > this.canvas.height;
+}
+class Queue {
+    constructor() {
+        this.buf = new Array(16);
+        this.head = 0;
+        this.last = 0;
+    }
+    enqueue(value) {
+if(this.last===this.buf.length-1){
+    if((this.last-this.head)>this.buf.length-1){
+
+    }
+}
+        this.push.push(value);
+        last++;
+    }
+    dequeue() {
+        const obj = this.buf[head];
+        this.buf[head] = undefined;
+        if (this.head === this.last) {
+            this.head = this.last = 0;
+        } else {
+            this.head++;
+        }
+        return obj;
+    }
 }
 class Util {
     static get nanameCorrect() { return 0.71 };
@@ -331,11 +359,6 @@ data.score = 0;
 class ScenePlay extends Mono {
     constructor() {
         super(new Fiber(), new Hako());
-        this.hako.add(this.textScore = new Bun());
-        this.textScore.moji.watch = () => `SCORE ${data.score}`;
-        this.textScore.pos.x = 2;
-        this.textScore.pos.y = 2;
-
         this.hako.add(this.text = new Bun('シューティングゲームだよ', { size: 25, color: '#666666', isCenter: true, isMiddle: true }));
         this.text.pos.x = game.canvas.width * 0.5;
         this.text.pos.y = game.canvas.height * 0.5
@@ -346,6 +369,11 @@ class ScenePlay extends Mono {
 
         this.hako.add(this.baddiesbullets = Baddie.createBullets());
         this.hako.add(this.baddies = Baddie.createBaddies());
+
+        this.hako.add(this.textScore = new Bun('', { font: 'Impact' }));
+        this.textScore.moji.watch = () => `SCORE ${data.score}`;
+        this.textScore.pos.x = 2;
+        this.textScore.pos.y = 2;
 
         // this.fiber.add(this.stageRunner(con.stages[0]));
         this.fiber.add(this.stageRunner2());
@@ -391,13 +419,13 @@ class ScenePlay extends Mono {
     *stageRunner2() {
         let timeCounter = 0;
         while (data.score < 100000) {
-            if(this.baddies.hako.objs.length>100){
+            if (this.baddies.hako.objs.length > 100) {
                 yield undefined;
                 continue;
             }
             if (timeCounter < 0) {
                 timeCounter = 0;
-                this.spawnBaddie(Util.random(30, game.canvas.width-30), Util.random(30, game.canvas.height*0.5), 'obake');
+                this.spawnBaddie(Util.random(30, game.canvas.width - 30), Util.random(30, game.canvas.height * 0.5), 'obake');
             } else {
                 timeCounter -= 1 * game.delta;
             }
