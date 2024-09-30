@@ -13,16 +13,12 @@ const baddiesBulletRate = 1 / 1;
 
 class Game {
     constructor(width = 320, height = 480) {
-        const link = document.createElement('link');
-        link.setAttribute('rel', 'stylesheet');
-        link.setAttribute('type', 'text/css');
-        link.setAttribute('href', iconUrl);
-        document.querySelector('head').appendChild(link);
+        document.querySelector('head').insertAdjacentHTML('beforeend', `<link rel="stylesheet" type="text/css" href="${iconUrl}" /> `);
         this.canvas = document.createElement('canvas');
         document.querySelector('body').appendChild(this.canvas);
         this.canvas.width = width;
         this.canvas.height = height;
-        this.root = new Mono(new Bag());
+        this.root = Hako.create();
         this.key = {};
         this.input = {};
         this.time;
@@ -65,7 +61,7 @@ class Game {
         requestAnimationFrame(this.update.bind(this));
     }
     add(scene) {
-        this.root.add(scene);
+        this.root.hako.add(scene);
     }
     keyBind(name, key) {
         this.key[name] = key;
@@ -79,9 +75,24 @@ class Util {
     static clamp = (value, min, max) => Math.min(Math.max(value, min), max);
 }
 class Mono {
-    constructor() {
+    constructor(arg) {
         this.isExist = true;
         this.mixs = [];
+        if (Array.isArray(arg)) {
+            for (const mix of arg) {
+                this.addMix(mix);
+            }
+        } else {
+            this.addMix(arg);
+        }
+    }
+    addMix(mix) {
+        const name = mix.constructor.name.toLowerCase();
+        if (name in this) return;
+        this[name] = mix;
+        mix.owner = this;
+        this.mixs.push(mix);
+        return this;
     }
     update() {
         if (!this.isExist) return;
@@ -92,16 +103,8 @@ class Mono {
     draw() {
         if (!this.isExist) return;
         for (const mix of this.mixs) {
-            mix.draw();
+            mix.draw?.();
         }
-    }
-    add(mix) {
-        const name = mix.constructor.name.toLowerCase();
-        if (name in this) return;
-        this[name] = mix;
-        mix.owner = this;
-        this.mixs.push(mix);
-        return this;
     }
 }
 class Fiber {
@@ -119,11 +122,8 @@ class Fiber {
         while (c) {
             let g = c.next();
             if (!g.done) {
-                if (g.value) {
-                    this.add(g.value);
-                } else {
-                    break;
-                }
+                if (!g.value) break;
+                this.add(g.value);
                 if (c === this.fibers.at(-1)) break;
             }
             if (c === this.fibers.at(-1)) this.fibers.pop();
@@ -165,13 +165,13 @@ class Pos {
         return ox + other.width > x && x + this.width > ox && oy + other.height > y && y + this.height > oy;
     }
 }
-class Bag {
+class Hako {
     constructor() {
         this.maker = {};
         this.objs = [];
         this.reserves = {};
     }
-    create = () => new Mono().add(new Bag());
+    static create = () => new Mono(new Hako());
     addCreator(name, func, init = undefined) {
         this.maker[name] = { func, init };
     }
@@ -216,27 +216,20 @@ class Bag {
     }
 }
 class Moji {
-    constructor() {
-        this.text;
-        this.size;
-        this.color;
-        this.font = '';
-        this.weight = '';
-        this.baseLine = 'top';
-        this.rotate = 0;
-    }
-    create = (text, option = { size = 20, color = '#ffffff', font = 'FontAwesome', weight = 'normal', isCenter = false, isMiddle = false } = {}) => new Mono().add(new Moji()).moji.init(text, option);
-    init(text, { size = this.size, color = this.color, font = this.font, weight = this.weight, isCenter = this.isCenter, isMiddle = this.isMiddle } = {}) {
+    constructor(text, { size = 20, color = '#ffffff', font = 'FontAwesome', weight = 'normal', isCenter = false, isMiddle = false } = {}) {
+        const pos = new Pos();
         this.text = text;
         this.size = size;
         this.color = color;
         this.font = font;
         this.weight = weight;
-        this.owner.add(new Pos());
-        this.owner.pos.isCenter = isCenter;
-        this.owner.pos.isMiddle = isMiddle;
-        return this.owner;
+        this.baseLine = 'top';
+        this.rotate = 0;
+        pos.isCenter = isCenter;
+        pos.isMiddle = isMiddle;
+        return [pos, this];
     }
+    static create = (text, { size = 20, color = '#ffffff', font = 'FontAwesome', weight = 'normal', isCenter = false, isMiddle = false } = {}) => new Mono(new Moji(text, { size, color, font, weight, isCenter, isMiddle }));
     draw() {
         const ctx = game.canvas.getContext('2d');
         ctx.font = `${this.weight} ${this.size}px ${this.font}`;
@@ -255,8 +248,9 @@ class Moji {
 class Tofu {
     constructor() {
         this.color = '#ffffff';
+        return [new Pos(), this];
     }
-    create = () => new Mono().add(new Pos()).add(new Tofu());
+    static create = () => new Mono(new Tofu());
     draw() {
         const pos = this.owner.pos;
         const x = pos.getScreenX();
@@ -270,8 +264,17 @@ class Tofu {
 export const game = new Game();
 game.keyBind('space', ' ');
 
-export const data = {};
-data.score = 0;
+export const con = {};
+
+class BaddieData {
+    constructor(name, char, hp) {
+        this.name = name;
+        this.char = char;
+        this.hp = hp;
+    }
+}
+con.baddies = {};
+con.baddies['obake'] = new BaddieData('obake', emojiGhost, 10);
 
 class SpawnData {
     constructor(time, x, y, name) {
@@ -281,30 +284,38 @@ class SpawnData {
         this.name = name;
     }
 }
+con.stages = [];
 const stage1 = [];
+con.stages.push(stage1);
 stage1.push(new SpawnData(2, 50, 50, 'obake'));
 // stage1.push(new SpawnData(2, 100, 50, 'obake'));
 // stage1.push(new SpawnData(3, 150, 50, 'obake'));
 // stage1.push(new SpawnData(4, 200, 50, 'obake'));
 
 
+
+export const data = {};
+data.score = 0;
+
 class ScenePlay {
     constructor() {
-        this.text = Moji.create('シューティングゲームだよ', { size: 25, color: '#666666', isCenter: true, isMiddle: true });
+        const hako = new Hako();
+        hako.add(this.text = Moji.create('シューティングゲームだよ', { size: 25, color: '#666666', isCenter: true, isMiddle: true }));
         this.text.pos.x = game.canvas.width * 0.5;
-        this.text.pos.y = game.canvas.height * 0.5;
-        const bag = this.owner.bag;
-        bag.add(this.text);
-        this.player = new Player();
-        bag.add(this.player.bullets);
-        bag.add(this.player);
-        this.baddies = new Baddies();
-        bag.add(this.baddies.bullets);
-        bag.add(this.baddies);
-        this.stage;
-        this.stageStart(stage1);
+        this.text.pos.y = game.canvas.height * 0.5
+
+        this.player = Player.create();
+        hako.add(this.player.player.bullets);
+        hako.add(this.player);
+
+        hako.add(this.baddiesbullets = Baddie.createBullets());
+        hako.add(this.baddies = Baddie.createBaddies());
+
+        const fiber = new Fiber();
+        fiber.add(this.stageRunner(con.stages[0]));
+        return [fiber, hako, this];
     }
-    create = () => new Mono().add(new Fiber()).add(new Bag()).add(new ScenePlay());
+    static create = () => new Mono(new ScenePlay());
     update() {
         {
             const halfX = this.player.pos.width * 0.5;
@@ -313,9 +324,9 @@ class ScenePlay {
             this.player.pos.y = Util.clamp(halfY, this.player.pos.y, game.canvas.height - halfY);
         }
         {
-            this.player.bullets.bag.each((bullet) => {
+            this.player.player.bullets.hako.each((bullet) => {
                 if (game.isOutOfRange(bullet.pos.getScreenX(), bullet.pos.getScreenY(), bullet.pos.width, bullet.pos.height)) bullet.putback();
-                this.baddies.bag.each((baddie) => {
+                this.baddies.hako.each((baddie) => {
                     if (!bullet.pos.isIntersect(baddie.pos)) return;
                     console.log('ぐわぁぁぁ');
                     bullet.putback();
@@ -324,17 +335,13 @@ class ScenePlay {
             });
         }
         {
-            this.baddies.bullets.bag.each((bullet) => {
+            this.baddiesbullets.hako.each((bullet) => {
                 if (game.isOutOfRange(bullet.pos.getScreenX(), bullet.pos.getScreenY(), bullet.pos.width, bullet.pos.height)) bullet.putback();
                 if (!bullet.pos.isIntersect(this.player.pos)) return;
                 console.log('ぎにゃー');
                 bullet.putback();
             })
         }
-    }
-    stageStart(stage) {
-        this.stage = stage;
-        this.fiber.add(this.stageRunner(stage));
     }
     *stageRunner(stage) {
         const temp = [...stage].sort((a, b) => a.time < b.time);
@@ -344,50 +351,56 @@ class ScenePlay {
                 timeCounter += game.delta;
                 yield undefined;
             }
-            this.baddies.spawn(d.x, d.y, d.name);
+            this.spawnBaddie(d.x, d.y, d.name);
         }
+    }
+    spawnBaddie(x, y, name) {
+        const bad = this.baddies.hako.get(name);
+        bad.pos.x = x;
+        bad.pos.y = y;
+        bad.baddie.bullets = this.baddiesbullets;
     }
 }
 class Player {
     constructor() {
-        super();
-        this.add(new Moji(this));
-        this.moji.set(Util.parseUnicode(emojiCat), { size: 40, color: '#de858c', isCenter: true, isMiddle: true });
-        this.pos.x = game.canvas.width * 0.5;
-        this.pos.y = game.canvas.height * 0.5;
+        const [pos, moji] = new Moji(Util.parseUnicode(emojiCat), { size: 40, color: '#de858c', isCenter: true, isMiddle: true });
+        pos.x = game.canvas.width * 0.5;
+        pos.y = game.canvas.height * 0.5;
         this.bulletCooltime = 0;
-        this.bullets = new Mono(new Bag());
-        this.bullets.bag.addCreator(Tofu.name, () => new Tofu());
+        this.bullets = Hako.create();
+        this.bullets.hako.addCreator(Tofu.name, () => Tofu.create());
+        return [pos, moji, this];
     }
-    create = () => new Mono().add()
-    _update() {
-        this.pos.vx = 0;
-        this.pos.vy = 0;
+    static create = () => new Mono(new Player);
+    update() {
+        const pos = this.owner.pos;
+        pos.vx = 0;
+        pos.vy = 0;
         if (game.input.left) {
-            this.pos.vx = -playerMoveSpeed;
+            pos.vx = -playerMoveSpeed;
         }
         if (game.input.right) {
-            this.pos.vx = playerMoveSpeed;
+            pos.vx = playerMoveSpeed;
         }
         if (game.input.up) {
-            this.pos.vy = -playerMoveSpeed;
+            pos.vy = -playerMoveSpeed;
         }
         if (game.input.down) {
-            this.pos.vy = playerMoveSpeed;
+            pos.vy = playerMoveSpeed;
         }
-        if (this.pos.vx !== 0 && this.pos.vy !== 0) {
-            this.pos.vx *= Util.nanameCorrect;
-            this.pos.vy *= Util.nanameCorrect;
+        if (pos.vx !== 0 && pos.vy !== 0) {
+            pos.vx *= Util.nanameCorrect;
+            pos.vy *= Util.nanameCorrect;
         }
         if (game.input.space) {
             if (this.bulletCooltime < 0) {
                 this.bulletCooltime = playerBulletRate;
-                const bullet = this.bullets.bag.get(Tofu.name);
+                const bullet = this.bullets.hako.get(Tofu.name);
                 bullet.pos.width = 4;
                 bullet.pos.height = 4;
-                bullet.square.color = '#ffffff';
-                bullet.pos.x = this.pos.x;
-                bullet.pos.y = this.pos.y;
+                bullet.tofu.color = '#ffffff';
+                bullet.pos.x = pos.x;
+                bullet.pos.y = pos.y;
                 bullet.pos.vy = -400;
             } else {
                 this.bulletCooltime -= 1 * game.delta;
@@ -395,48 +408,43 @@ class Player {
         }
     }
 }
-class Baddies extends Mono {
-    constructor() {
-        super();
-        this.add(new Bag());
-        this.bag.addCreator('obake', () => new Baddie(), (bad) => {
-            bad.moji.text = Util.parseUnicode(emojiGhost);
-        });
-        this.bag.addCreator('crow', () => new Baddie(), (bad) => {
-            bad.moji.text = Util.parseUnicode(emojiCrow);
-        });
-        this.bullets = new Mono(new Bag());
-        this.bullets.bag.addCreator(Tofu.name, () => new Tofu());
-    }
-    spawn(x, y, name) {
-        const bad = this.bag.get(name);
-        bad.pos.x = x;
-        bad.pos.y = y;
-        bad.bullets = this.bullets;
-    }
-}
-class Baddie extends Mono {
-    constructor() {
-        super();
-        this.add(new Moji(this));
-        this.moji.set('', { size: 40, color: '#999999', isCenter: true, isMiddle: true });
+class Baddie {
+    constructor(char, hp) {
+        const [pos, moji] = new Moji(char, { size: 40, color: '#999999', isCenter: true, isMiddle: true });
+        this.hp = hp;
         this.bullets;
         this.bulletCooltime = 0;
+        return [pos, moji, this];
+    }
+    static create = (name,hp) => new Mono(new Baddie(name,hp));
+    static createBaddies() {
+        const baddies = Hako.create();
+        for (const bad of Object.values(con.baddies)) {
+            baddies.hako.addCreator(bad.name, () => Baddie.create(Util.parseUnicode(bad.char),bad.hp));
+        }
+        return baddies;
+    }
+    static createBullets() {
+        const bullets = Hako.create();
+        bullets.hako.addCreator(Tofu.name, () => Tofu.create());
+        return bullets;
     }
     update() {
         if (this.bulletCooltime < 0) {
             this.bulletCooltime = baddiesBulletRate;
-            const bullet = this.bullets.bag.get(Tofu.name);
+            const pos=this.owner.pos;
+            const bullet = this.bullets.hako.get(Tofu.name);
+            bullet.tofu.color = '#ffffff';
             bullet.pos.width = 4;
             bullet.pos.height = 4;
-            bullet.square.color = '#ffffff';
-            bullet.pos.x = this.pos.x;
-            bullet.pos.y = this.pos.y;
+            bullet.pos.x = pos.x;
+            bullet.pos.y = pos.y;
             bullet.pos.vy = 200;
         } else {
             this.bulletCooltime -= 1 * game.delta;
         }
     }
+
 }
-game.add(new ScenePlay());
+game.add(ScenePlay.create());
 game.start();
