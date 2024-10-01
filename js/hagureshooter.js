@@ -95,7 +95,8 @@ class Util {
     }
     static random = (min, max) => Math.floor(Math.random() * (max + 1 - min) + min);
     static average = (arr) => arr.reduce((prev, current, i, arr) => prev + current) / arr.length;
-
+    static color = (color, alpha) => `rgb(${color} / ${alpha})`;
+    static color = (r, b, g, alpha) => `rgb(${r} ${g} ${b} / ${alpha})`;
 }
 class Mono {
     constructor(...args) {
@@ -251,11 +252,13 @@ class Child {
 class Jumyo {
     constructor(lifeSpan) {
         this.lifeSpan = lifeSpan;
+        this.lifeStage = 0;
     }
     update() {
-        if (this.lifeSpan < 0) this.owner.putback();
-        this.lifeSpan -= game.delta;
+        if (this.lifeStage >= this.lifeSpan) this.owner.putback();
+        this.lifeStage += game.delta;
     }
+    get percentage() { return this.lifeStage / this.lifeSpan };
 }
 class Iremono extends Mono {
     constructor() {
@@ -299,13 +302,14 @@ class Bun extends Mono {
 class Brush {
     constructor() {
         this.color = '#ffffff';
+        this.alpha = 255;
         return [new Pos(), this];
     }
     draw(ctx) {
         const pos = this.owner.pos;
         const x = pos.getScreenX();
         const y = pos.getScreenY();
-        ctx.fillStyle = this.color;
+        ctx.fillStyle = `${this.color}${this.alpha.toString(16)}`;
         ctx.fillRect(x, y, pos.width, pos.height);
     }
 }
@@ -323,16 +327,17 @@ class Tsubu extends Mono {
             t.pos.height = 8;
             t.pos.align = 1;
             t.pos.valign = 1;
-            // t.brush.color = '#ffffff';
             t.update = () => {
-                t.brush.color = `rgba(255, 255, 255, ${t.pos.vxc})`;
+                t.brush.alpha = 255-(t.jumyo.percentage * 255);
             }
         });
     }
-    emittCircle(count, speed, lifeSpan, x, y, c) {
+    emittCircle(count, speed, lifeSpan, color, x, y, c) {
         const deg = 360 / count;
         for (let i = 0; i < count; i++) {
             const t = this.child.get(Tofu.name);
+            t.brush.color = color;
+            t.brush.alpha = 255;
             t.pos.x = x;
             t.pos.y = y;
             t.pos.vx = Util.degToX(deg * i) * speed;
@@ -340,6 +345,7 @@ class Tsubu extends Mono {
             t.pos.vxc = c;
             t.pos.vyc = c;
             t.jumyo.lifeSpan = lifeSpan;
+            t.jumyo.lifeStage=0;
         }
     }
 }
@@ -421,7 +427,7 @@ class ScenePlay extends Mono {
                     // console.log('ぐわぁぁぁ');
                     bullet.putback();
                     if (baddie.hit(1)) {
-                        this.effect.emittCircle(8, 300, 0.5, baddie.pos.x, baddie.pos.y, 0.97)
+                        this.effect.emittCircle(8, 300, 0.5, '#ffffff', baddie.pos.x, baddie.pos.y, 0.97)
                         baddie.putback();
                     }
                 })
@@ -432,7 +438,7 @@ class ScenePlay extends Mono {
                 if (game.isOutOfRange(bullet.pos.getScreenX(), bullet.pos.getScreenY(), bullet.pos.width, bullet.pos.height)) bullet.putback();
                 if (!bullet.pos.isIntersect(this.player.pos)) return;
                 // console.log('ぎにゃー');
-                this.effect.emittCircle(8, 300, 0.5, this.player.pos.x, this.player.pos.y, 0.97)
+                this.effect.emittCircle(8, 300, 0.5, '#ffffff', this.player.pos.x, this.player.pos.y, 0.97)
 
                 bullet.putback();
             })
