@@ -2,10 +2,16 @@
 console.clear();
 
 const iconUrl = 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css';
+// const fontUrl='https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c&display=swap';
+const fontUrl = 'https://fonts.googleapis.com/css2?family=Kaisei+Decol&display=swap';
+
+const colorPumpkin = '#F89537';
 
 const emojiGhost = 'f6e2';
 const emojiCat = 'f6be';
 const emojiCrow = 'f520';
+
+const layerName = ['bg', 'main', 'effect', 'ui',];
 
 const playerMoveSpeed = 600;
 const playerBulletRate = 1 / 20;
@@ -15,26 +21,34 @@ const baddiesBulletSpeed = 150;
 class Game {
     constructor(width = 320, height = 480) {
         document.querySelector('head').insertAdjacentHTML('beforeend', `<link rel="stylesheet" type="text/css" href="${iconUrl}" /> `);
-        this.canvas = document.createElement('canvas');
-        document.querySelector('body').appendChild(this.canvas);
-        this.canvas.width = width;
-        this.canvas.height = height;
-        this.root = new Iremono();
+        document.querySelector('head').insertAdjacentHTML('beforeend', `<link rel="stylesheet" type="text/css" href="${fontUrl}" /> `);
+        this.width = width;
+        this.height = height;
+        this.layers = {};
+        for (const layer of layerName) {
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+            canvas.style.position = 'absolute';
+            document.querySelector('body').appendChild(this.layers[layer] = canvas);
+        }
+        const bg = this.layers['bg'].getContext('2d');
+        bg.fillStyle = '#000000';
+        bg.fillRect(0, 0, this.width, this.height);
+        this.blur = document.createElement('canvas');
+        this.blur.width = width;
+        this.blur.height = height;
+        this.root = new Mono(new Fiber(), new Child());
         this.key = {};
         this.input = {};
         this.time;
         this.delta;
         this.fpsBuffer = Array.from({ length: 60 });
     }
-    init() {
-        this.add(this.fpsView = new Bun(() => `FPS: ${this.fps}`, { font: 'Impact' }));
-        this.fpsView.pos.x = this.canvas.width - 2;
-        this.fpsView.pos.y = 2;
-        this.fpsView.pos.align = 2;
-    }
+    create() { }
     start() {
         //todo:preload?
-        this.init();
+        this.create();
         const _keyEvent = e => {
             e.preventDefault();
             for (const key in this.key) {
@@ -55,29 +69,41 @@ class Game {
         game.keybind('left', 'ArrowLeft');
         game.keybind('right', 'ArrowRight');
         this.time = performance.now();
-        this.update();
+        this.mainloop();
     }
-    update() {
+    mainloop() {
         const now = performance.now();
         this.delta = Math.min((now - this.time) / 1000.0, 1 / 1.0);
         this.time = now;
         this.fpsBuffer.push(this.delta);
         this.fpsBuffer.shift();
         this.root.baseUpdate();
-        const ctx = this.canvas.getContext('2d');
-        ctx.fillStyle = '#000000';
-        ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-        this.root.draw(ctx);
-        requestAnimationFrame(this.update.bind(this));
+        const layers = Object.values(this.layers).slice(1);
+        for (const layer of layers) {
+            layer.getContext('2d').clearRect(0, 0, this.width, this.height);
+        }
+        const ctx = this.layers['effect'].getContext('2d');
+        //ctx.globalCompositeOperation = 'lighter';
+        ctx.drawImage(this.blur, 0, 0);
+        //ctx.globalCompositeOperation = 'source-over';
+        this.root.draw(this.layers['main'].getContext('2d'));
+        const blurCtx = this.blur.getContext('2d');
+        blurCtx.clearRect(0, 0, this.width, this.height);
+        blurCtx.globalAlpha = 0.6;
+        blurCtx.drawImage(this.layers['effect'], 0, 0);
+        requestAnimationFrame(this.mainloop.bind(this));
     }
     add(scene) {
         this.root.child.add(scene);
+    }
+    setFiber(fiber) {
+        this.root.fiber.add(fiber);
     }
     keybind(name, key) {
         this.key[name] = key;
         this.input[name] = false;
     }
-    isOutOfRange = (x, y, width, height) => x + width < 0 || x > this.canvas.width || y + height < 0 || y > this.canvas.height;
+    isOutOfRange = (x, y, width, height) => x + width < 0 || x > this.width || y + height < 0 || y > this.height;
     get fps() { return Math.floor(1 / Util.average(this.fpsBuffer)) };
 }
 class Util {
@@ -95,8 +121,6 @@ class Util {
     }
     static random = (min, max) => Math.floor(Math.random() * (max + 1 - min) + min);
     static average = (arr) => arr.reduce((prev, current, i, arr) => prev + current) / arr.length;
-    static color = (color, alpha) => `rgb(${color} / ${alpha})`;
-    static color = (r, b, g, alpha) => `rgb(${r} ${g} ${b} / ${alpha})`;
 }
 class Mono {
     constructor(...args) {
@@ -188,8 +212,8 @@ class Pos {
         this.vx *= this.vxc;
         this.vy *= this.vyc;
     }
-    getScreenX = () => (this.x - this.align * this.width * 0.5);
-    getScreenY = () => (this.y - this.valign * this.height * 0.5);
+    getScreenX = () => Math.floor(this.x - this.align * this.width * 0.5);
+    getScreenY = () => Math.floor(this.y - this.valign * this.height * 0.5);
     isIntersect(other) {
         const x = this.getScreenX();
         const y = this.getScreenY();
@@ -204,6 +228,8 @@ class Child {
         this.objs = [];
         this.reserves = {};
         this.liveCount = 0;
+        this.layer = '';
+        this.isChildsPause = false;
     }
     static create = () => new Mono(new Child());
     addCreator(name, func, init = undefined) {
@@ -233,14 +259,18 @@ class Child {
         this.objs.push(obj);
     }
     update() {
+        if (this.isChildsPause) return;
         for (const obj of this.objs) {
             obj.baseUpdate();
         }
     }
     draw(ctx) {
+        const before = ctx;
+        if (this.layer !== '') ctx = game.layers[this.layer].getContext('2d');
         for (const obj of this.objs) {
             obj.draw(ctx);
         }
+        ctx = before;
     }
     each(func) {
         for (const obj of this.objs) {
@@ -255,8 +285,11 @@ class Jumyo {
         this.lifeStage = 0;
     }
     update() {
-        if (this.lifeStage >= this.lifeSpan) this.owner.putback();
-        this.lifeStage += game.delta;
+        if (this.lifeStage < this.lifeSpan) {
+            this.lifeStage = Math.min(this.lifeStage + game.delta, this.lifeSpan);
+            return;
+        }
+        this.owner.putback();
     }
     get percentage() { return this.lifeStage / this.lifeSpan };
 }
@@ -266,7 +299,7 @@ class Iremono extends Mono {
     }
 }
 class Moji {
-    constructor(text, { size = 20, color = '#ffffff', font = 'FontAwesome', weight = 'normal', align = 0, valign = 0 } = {}) {
+    constructor(text, x, y, { size = 20, color = '#ffffff', font = 'FontAwesome', weight = 'normal', align = 0, valign = 0 } = {}) {
         const pos = new Pos();
         this.text = text;
         this.weight = weight;
@@ -275,12 +308,14 @@ class Moji {
         this.color = color;
         this.baseLine = 'top';
         this.rotate = 0;
+        pos.x = x;
+        pos.y = y;
         pos.align = align;
         pos.valign = valign;
         return [pos, this];
     }
     draw(ctx) {
-        ctx.font = `${this.weight} ${this.size}px ${this.font}`;
+        ctx.font = `${this.weight} ${this.size}px '${this.font}'`;
         ctx.textBaseline = this.baseLine;
         const text = typeof this.text === 'function' ? this.text() : this.text;
         const tm = ctx.measureText(text);
@@ -289,14 +324,13 @@ class Moji {
         pos.height = Math.abs(tm.actualBoundingBoxAscent) + Math.abs(tm.actualBoundingBoxDescent);
         const x = pos.getScreenX();
         const y = pos.getScreenY();
-        if (game.isOutOfRange(x, y, pos.width, pos.height)) return;
         ctx.fillStyle = this.color;
         ctx.fillText(text, x, y);
     }
 }
 class Bun extends Mono {
-    constructor(text, { size = 20, color = '#ffffff', font = 'FontAwesome', weight = 'normal', align = 0, valign = 0 } = {}) {
-        super(new Moji(text, { size, color, font, weight, align, valign }));
+    constructor(text, x, y, { size = 20, color = '#ffffff', font = 'FontAwesome', weight = 'normal', align = 0, valign = 0 } = {}) {
+        super(new Moji(text, x, y, { size, color, font, weight, align, valign }));
     }
 }
 class Brush {
@@ -309,7 +343,7 @@ class Brush {
         const pos = this.owner.pos;
         const x = pos.getScreenX();
         const y = pos.getScreenY();
-        ctx.fillStyle = `${this.color}${this.alpha.toString(16)}`;
+        ctx.fillStyle = `${this.color}${this.alpha.toString(16).padStart(2, '0')}`;
         ctx.fillRect(x, y, pos.width, pos.height);
     }
 }
@@ -321,21 +355,23 @@ class Tofu extends Mono {
 class Tsubu extends Mono {
     constructor() {
         super(new Child());
-        this.child.addCreator(Tofu.name, () => new Tofu(), (t) => {
+        this.child.addCreator(Tsubu.name, () => {
+            const t = new Tofu();
             t.addMix(new Jumyo());
+            t.update = () => t.brush.alpha = Math.floor(255 - (t.jumyo.percentage * 255));
+            return t;
+        }, (t) => {
             t.pos.width = 8;
             t.pos.height = 8;
             t.pos.align = 1;
             t.pos.valign = 1;
-            t.update = () => {
-                t.brush.alpha = 255-(t.jumyo.percentage * 255);
-            }
+            t.jumyo.lifeStage = 0;
         });
     }
     emittCircle(count, speed, lifeSpan, color, x, y, c) {
         const deg = 360 / count;
         for (let i = 0; i < count; i++) {
-            const t = this.child.get(Tofu.name);
+            const t = this.child.get(Tsubu.name);
             t.brush.color = color;
             t.brush.alpha = 255;
             t.pos.x = x;
@@ -345,13 +381,74 @@ class Tsubu extends Mono {
             t.pos.vxc = c;
             t.pos.vyc = c;
             t.jumyo.lifeSpan = lifeSpan;
-            t.jumyo.lifeStage=0;
         }
     }
 }
+class Menu extends Mono {
+    constructor(x, y, size, align = 1) {
+        super(new Pos(), new Child());
+        this.pos.x = x;
+        this.pos.y = y;
+        this.pos.align = align;
+        this.size = size;
+        this.texts = [];
+        this.callbacks = [];
+        this.index = 0;
+        this.color = '#ffffff';
+        this.highlite = '#EDD425';
+        this.wait = 0.2;
+        this.child.add(this.curL = new Bun(Util.parseUnicode(emojiCat), 0, 0, { size: this.size, color: this.highlite, align: 2 }));
+        this.child.add(this.curR = new Bun(Util.parseUnicode(emojiCat), 0, 0, { size: this.size, color: this.highlite }));
+    }
+    add(text, callback) {
+        this.child.add(new Bun(text, this.pos.x, this.pos.y + this.size * 1.5 * (this.child.objs.length - 2), { size: this.size, color: this.color, font: 'Kaisei Decol', align: this.pos.align, valign: 0 }))
+        this.texts.push(text);
+        this.callbacks.push(callback);
+    }
+    *stateSelect() {
+        this.move();
+        while (true) {
+            if (game.input.up) {
+                let item = this.child.objs[this.index + 2];
+                item.moji.color = this.color;
+                this.index = this.index + (this.texts.length - 1) % (this.texts.length-1);
+                this.move();
+                yield waitForTime(this.wait);
+                continue;
+            }
+            if (game.input.down) {
+                let item = this.child.objs[this.index + 2];
+                item.moji.color = this.color;
+                this.index = this.index + 1 % (this.texts.length-1);
+                this.move();
+                yield waitForTime(this.wait);
+                continue;
+            }
+            yield undefined;
+        }
+    }
+    move() {
+        const item = this.child.objs[this.index + 2];
+        item.moji.color = this.highlite;
+        const w = item.moji.text.length * this.size;
+        const x = (w * 0.5) * this.pos.align;
+        this.curL.pos.x = item.pos.x - x;
+        this.curL.pos.y = item.pos.y;
+        this.curR.pos.x = item.pos.x - x + w;
+        this.curR.pos.y = item.pos.y;
+    }
+}
 export const game = new Game();
-game.keybind('space', ' ');
+game.create = () => {
+    game.keybind('space', ' ');
 
+    const ctx = game.layers['bg'].getContext('2d');
+    const grad = ctx.createLinearGradient(0, 0, 0, game.height);
+    grad.addColorStop(0, "#611180");
+    grad.addColorStop(1, "#253FB0");
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, game.width, game.height);
+};
 export const con = {};
 {
     class BaddieData {
@@ -385,12 +482,29 @@ export const data = {};
 {
     data.score = 0;
 }
+class SceneTitle extends Mono {
+    constructor() {
+        super(new Fiber(), new Child());
+        //タイトル
+        const titleSize = game.width / 11;
+        let titleY = game.height * 0.25;
+        this.child.add(new Bun('シューティングゲーム', game.width * 0.5, titleY, { size: titleSize, color: '#EDD425', font: 'Kaisei Decol', align: 1, valign: 1 }));
+        this.child.add(new Bun('かもしれないなにか', game.width * 0.5, titleY + titleSize * 1.5, { size: titleSize, color: '#ffffff', font: 'Kaisei Decol', align: 1, valign: 1 }));
+        //メニュー
+        this.child.add(this.titleMenu = new Menu(game.width * 0.5, game.height * 0.5, titleSize, 1));
+        const menuItem = ['スタート', 'ハイスコア', 'クレジット'];
+        for (const item of menuItem) {
+            this.titleMenu.add(item, () => undefined);
+        }
+        game.setFiber(this.titleMenu.stateSelect());
+    }
+}
 class ScenePlay extends Mono {
     constructor() {
         super(new Fiber(), new Child());
         // this.child.add(this.text = new Bun('シューティングゲームのようなもの', { size: 25,color: '#666666', align: 1, valign: 1 }));
-        // this.text.pos.x = game.canvas.width * 0.5;
-        // this.text.pos.y = game.canvas.height * 0.5
+        // this.text.pos.x = game.width * 0.5;
+        // this.text.pos.y = game.height * 0.5
 
         this.player = new Player();
         this.child.add(this.player.bullets);
@@ -400,10 +514,17 @@ class ScenePlay extends Mono {
         this.child.add(this.baddies = Baddie.createBaddies());
 
         this.child.add(this.effect = new Tsubu());
+        this.effect.child.layer = 'effect';
 
-        this.child.add(this.textScore = new Bun(() => `SCORE ${data.score}`, { font: 'Impact' }));
+        this.child.add(this.ui = new Iremono());
+        this.ui.child.layer = 'ui';
+        this.ui.child.add(this.textScore = new Bun(() => `SCORE ${data.score}`, { font: 'Impact' }));
         this.textScore.pos.x = 2;
         this.textScore.pos.y = 2;
+        this.ui.child.add(this.fpsView = new Bun(() => `FPS: ${game.fps}`, { font: 'Impact' }));
+        this.fpsView.pos.x = game.width - 2;
+        this.fpsView.pos.y = 2;
+        this.fpsView.pos.align = 2;
 
         // this.child.add(this.textScore = new Bun(() => `Baddie:${this.baddies.child.liveCount} Bullets:${this.baddiesbullets.child.liveCount}`, { font: 'Impact' }));
         // this.textScore.pos.x = 2;
@@ -416,8 +537,8 @@ class ScenePlay extends Mono {
         {
             const halfX = this.player.pos.width * 0.5;
             const halfY = this.player.pos.height * 0.5;
-            this.player.pos.x = Util.clamp(halfX, this.player.pos.x, game.canvas.width - halfX);
-            this.player.pos.y = Util.clamp(halfY, this.player.pos.y, game.canvas.height - halfY);
+            this.player.pos.x = Util.clamp(halfX, this.player.pos.x, game.width - halfX);
+            this.player.pos.y = Util.clamp(halfY, this.player.pos.y, game.height - halfY);
         }
         {
             this.player.bullets.child.each((bullet) => {
@@ -464,7 +585,7 @@ class ScenePlay extends Mono {
             }
             if (timeCounter < 0) {
                 timeCounter = 1;
-                this.spawnBaddie(Util.random(30, game.canvas.width - 30), Util.random(30, game.canvas.height * 0.5), 'crow');
+                this.spawnBaddie(Util.random(30, game.width - 30), Util.random(30, game.height * 0.5), 'crow');
             } else {
                 timeCounter -= 1 * game.delta;
             }
@@ -480,11 +601,10 @@ class ScenePlay extends Mono {
 }
 class Player extends Mono {
     constructor() {
-        super(new Moji(Util.parseUnicode(emojiCat), { size: 40, color: '#ffffff', align: 1, valign: 1 }));
-        this.pos.x = game.canvas.width * 0.5;
-        this.pos.y = game.canvas.height * 40;
+        super(new Moji(Util.parseUnicode(emojiCat), game.width * 0.5, game.height * 40, { size: 40, color: '#ffffff', align: 1, valign: 1 }));
         this.bulletCooltime = 0;
         this.bullets = new Iremono();
+        this.bullets.child.layer = 'effect';
         this.bullets.child.addCreator(Tofu.name, () => new Tofu(), (bullet) => {
             bullet.pos.width = 4;
             bullet.pos.height = 4;
@@ -531,7 +651,7 @@ class Player extends Mono {
 }
 class Baddie extends Mono {
     constructor(char) {
-        super(new Moji(char, { size: 40, color: '#ffffff', align: 1, valign: 1 }))
+        super(new Moji(char, 0, 0, { size: 40, color: '#ffffff', align: 1, valign: 1 }))
         this.hp = 0;
         this.bullets;
         this.bulletCooltime = 0;
@@ -547,12 +667,13 @@ class Baddie extends Mono {
     }
     static createBullets() {
         const bullets = new Iremono();
+        bullets.child.layer = 'effect';
         bullets.child.addCreator(Tofu.name, () => new Tofu(), (bullet) => {
             bullet.pos.width = 4;
             bullet.pos.height = 4;
             bullet.pos.align = 1;
             bullet.pos.valign = 1;
-            bullet.brush.color = '#ff7777';
+            bullet.brush.color = '#ff4444';
         });
         return bullets;
     }
@@ -585,5 +706,5 @@ class Baddie extends Mono {
         return this.hp <= 0;
     }
 }
-game.add(new ScenePlay());
+game.add(new SceneTitle());
 game.start();
