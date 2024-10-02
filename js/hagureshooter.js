@@ -11,7 +11,7 @@ const emojiGhost = 'f6e2';
 const emojiCat = 'f6be';
 const emojiCrow = 'f520';
 
-const layerName = ['bg', 'main', 'effect', 'ui',];
+const layerName = ['bg', 'main', 'effect', 'ui'];
 
 const playerMoveSpeed = 600;
 const playerBulletRate = 1 / 20;
@@ -190,12 +190,12 @@ function* waitForTime(time) {
     time -= game.delta;
     while (time > 0) {
         time -= game.delta;
-        yield null;
+        yield undefined;
     }
 }
 function* waitForFrag(func) {
     while (!func()) {
-        yield null;
+        yield undefined;
     }
 }
 class Pos {
@@ -228,10 +228,9 @@ class Child {
         this.objs = [];
         this.reserves = {};
         this.liveCount = 0;
-        this.layer = '';
+        this.drawlayer = '';
         this.isChildsPause = false;
     }
-    static create = () => new Mono(new Child());
     addCreator(name, func, init = undefined) {
         this.maker[name] = { func, init };
     }
@@ -266,7 +265,7 @@ class Child {
     }
     draw(ctx) {
         const before = ctx;
-        if (this.layer !== '') ctx = game.layers[this.layer].getContext('2d');
+        if (this.drawlayer.length > 0) ctx = game.layers[this.drawlayer].getContext('2d');
         for (const obj of this.objs) {
             obj.draw(ctx);
         }
@@ -310,18 +309,24 @@ class Moji {
         this.rotate = 0;
         pos.x = x;
         pos.y = y;
+        pos.height = size;
         pos.align = align;
         pos.valign = valign;
         return [pos, this];
     }
-    draw(ctx) {
+    get _getText() { return typeof this.text === 'function' ? this.text() : this.text };
+    getWidth = (ctx) => this._getWidth(ctx, this._getText);
+    _getWidth(ctx, text) {
         ctx.font = `${this.weight} ${this.size}px '${this.font}'`;
         ctx.textBaseline = this.baseLine;
-        const text = typeof this.text === 'function' ? this.text() : this.text;
         const tm = ctx.measureText(text);
+        return tm.width;
+    }
+    draw(ctx) {
+        const text = this._getText;
         const pos = this.owner.pos;
-        pos.width = tm.width;
-        pos.height = Math.abs(tm.actualBoundingBoxAscent) + Math.abs(tm.actualBoundingBoxDescent);
+        pos.width = this._getWidth(ctx, text);
+        //pos.height = Math.abs(tm.actualBoundingBoxAscent) + Math.abs(tm.actualBoundingBoxDescent);
         const x = pos.getScreenX();
         const y = pos.getScreenY();
         ctx.fillStyle = this.color;
@@ -396,7 +401,7 @@ class Menu extends Mono {
         this.index = 0;
         this.color = '#ffffff';
         this.highlite = '#EDD425';
-        this.wait = 0.2;
+        this.wait = 0.125;
         this.child.add(this.curL = new Bun(Util.parseUnicode(emojiCat), 0, 0, { size: this.size, color: this.highlite, align: 2 }));
         this.child.add(this.curR = new Bun(Util.parseUnicode(emojiCat), 0, 0, { size: this.size, color: this.highlite }));
     }
@@ -411,7 +416,7 @@ class Menu extends Mono {
             if (game.input.up) {
                 let item = this.child.objs[this.index + 2];
                 item.moji.color = this.color;
-                this.index = this.index + (this.texts.length - 1) % (this.texts.length-1);
+                this.index = (this.index + (this.texts.length - 1)) % this.texts.length;
                 this.move();
                 yield waitForTime(this.wait);
                 continue;
@@ -419,10 +424,14 @@ class Menu extends Mono {
             if (game.input.down) {
                 let item = this.child.objs[this.index + 2];
                 item.moji.color = this.color;
-                this.index = this.index + 1 % (this.texts.length-1);
+                this.index = (this.index + 1) % this.texts.length;
                 this.move();
                 yield waitForTime(this.wait);
                 continue;
+            }
+            if (game.input.Space) {
+                this.callbacks[this.index]();
+                return;
             }
             yield undefined;
         }
@@ -492,11 +501,15 @@ class SceneTitle extends Mono {
         this.child.add(new Bun('かもしれないなにか', game.width * 0.5, titleY + titleSize * 1.5, { size: titleSize, color: '#ffffff', font: 'Kaisei Decol', align: 1, valign: 1 }));
         //メニュー
         this.child.add(this.titleMenu = new Menu(game.width * 0.5, game.height * 0.5, titleSize, 1));
-        const menuItem = ['スタート', 'ハイスコア', 'クレジット'];
-        for (const item of menuItem) {
-            this.titleMenu.add(item, () => undefined);
+        this.titleMenu.add('スタート', () => undefined);
+        this.titleMenu.add('ハイスコア', () => undefined);
+        this.titleMenu.add('クレジット', () => undefined);
+        game.setFiber(this.stateTitle());
+    }
+    *stateTitle() {
+        while (true) {
+            yield* this.titleMenu.stateSelect();
         }
-        game.setFiber(this.titleMenu.stateSelect());
     }
 }
 class ScenePlay extends Mono {
