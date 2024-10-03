@@ -183,7 +183,8 @@ class Generator {
     }
     run = state => this.state = state;
     update() {
-        if (this.state?.next().done) this.state = undefined;
+        if (!this.state) return;
+        this.state?.next();
     }
 }
 function* waitForTime(time) {
@@ -392,6 +393,7 @@ class Menu extends Mono {
         this.pos.align = align;
         this.size = size;
         this.callbacks = [];
+        this.cancelCallback;
         this.index = 0;
         this.color = '#ffffff';
         this.highlite = '#EDD425';
@@ -407,6 +409,7 @@ class Menu extends Mono {
     *stateSelect() {
         this.move(this.index);
         while (true) {
+            yield undefined;
             if (game.IsDown('up')) {
                 this.move((this.index + (this.callbacks.length - 1)) % this.callbacks.length);
                 yield* waitForTime(this.wait);
@@ -418,11 +421,14 @@ class Menu extends Mono {
                 continue;
             }
             if (game.IsPress('space')) {
-                const result = this.callbacks[this.index]();
-                if (!Util.isGenerator(result)) return;
-                yield* result;
+                yield* this.callbacks[this.index]();
+                return;
             }
-            yield undefined;
+            if (game.IsPress('esc')) {
+                if (!this.cancelCallback) continue;
+                this.cancelCallback();
+                return;
+            }
         }
     }
     move(newIndex) {
@@ -499,12 +505,7 @@ class SceneTitle extends Mono {
         this.child.add(new Bun('かもしれないなにか', game.width * 0.5, titleY + titleSize * 1.5, { size: titleSize, color: '#ffffff', font: 'Kaisei Decol', align: 1, valign: 1 }));
         //メニュー
         this.child.add(this.titleMenu = new Menu(game.width * 0.5, game.height * 0.5, titleSize, 1));
-        this.titleMenu.add('スタート', () => {
-            this.isExist = false;
-            const play = new ScenePlay();
-            game.pushScene(play);
-            return play.stateDefault();
-        });
+        this.titleMenu.add('スタート', this.stateStart);
         this.titleMenu.add('ハイスコア', () => undefined);
         this.titleMenu.add('クレジット', () => undefined);
         game.setState(this.stateDefault());
@@ -512,7 +513,15 @@ class SceneTitle extends Mono {
     *stateDefault() {
         while (true) {
             yield* this.titleMenu.stateSelect();
+            this.isExist = true;
         }
+    }
+    *stateStart(){
+        this.isExist = false;
+        const play = new ScenePlay();
+        game.pushScene(play);
+        yield* play.stateDefault();
+        this.isExist = true;
     }
 }
 class ScenePlay extends Mono {
@@ -580,8 +589,8 @@ class ScenePlay extends Mono {
     }
     *stateDefault() {
         while (true) {
-            this.player.receiveInput();
-            if (game.IsDown('esc')) {
+            yield undefined;
+            if (game.IsPress('esc')) {
                 console.log('ポーズ');
                 this.isActive = false;
                 const pause = new ScenePause();
@@ -590,7 +599,7 @@ class ScenePlay extends Mono {
                 if (pause.scene.result === 0) return;
                 this.isActive = true;
             }
-            yield undefined;
+            this.player.receiveInput();
         }
     }
     *stageRunner(stage) {
