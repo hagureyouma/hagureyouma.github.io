@@ -10,6 +10,8 @@ const colorPumpkin = '#F89537';
 const emojiGhost = 'f6e2';
 const emojiCat = 'f6be';
 const emojiCrow = 'f520';
+const emojiHouse = 'e00d';
+const emojiTree = 'f1bb';
 
 const layerName = ['bg', 'main', 'effect', 'ui'];
 
@@ -38,9 +40,12 @@ class Game {
         this.blur = document.createElement('canvas');
         this.blur.width = width;
         this.blur.height = height;
-        this.root = new Mono(new Fiber(), new Child());
-        this.key = {};
-        this.input = {};
+        this.root = new Mono(new Generator(), new Child());
+        this.keyIndexes = new Map();
+        this.key = [];
+        this.inputBuffer = [];
+        this.inputBefore = [];
+        this.inputCurrent = [];
         this.time;
         this.delta;
         this.fpsBuffer = Array.from({ length: 60 });
@@ -48,16 +53,15 @@ class Game {
     create() { }
     start() {
         //todo:preload?
-        this.create();
         const _keyEvent = e => {
             e.preventDefault();
-            for (const key in this.key) {
+            for (const i of this.keyIndexes.values()) {
                 switch (e.type) {
                     case 'keydown':
-                        if (e.key === this.key[key]) this.input[key] = true;
+                        if (e.key === this.key[i]) this.inputBuffer[i] = true;
                         break;
                     case 'keyup':
-                        if (e.key === this.key[key]) this.input[key] = false;
+                        if (e.key === this.key[i]) this.inputBuffer[i] = false;
                         break;
                 }
             }
@@ -68,6 +72,7 @@ class Game {
         game.keybind('down', 'ArrowDown');
         game.keybind('left', 'ArrowLeft');
         game.keybind('right', 'ArrowRight');
+        this.create();
         this.time = performance.now();
         this.mainloop();
     }
@@ -77,6 +82,10 @@ class Game {
         this.time = now;
         this.fpsBuffer.push(this.delta);
         this.fpsBuffer.shift();
+        for (let i = 0; i < this.key.length; i++) {
+            this.inputBefore[i] = this.inputCurrent[i];
+            this.inputCurrent[i] = this.inputBuffer[i];
+        }
         this.root.baseUpdate();
         const layers = Object.values(this.layers).slice(1);
         for (const layer of layers) {
@@ -86,23 +95,26 @@ class Game {
         //ctx.globalCompositeOperation = 'lighter';
         ctx.drawImage(this.blur, 0, 0);
         //ctx.globalCompositeOperation = 'source-over';
-        this.root.draw(this.layers['main'].getContext('2d'));
+        this.root.baseDraw(this.layers['main'].getContext('2d'));
         const blurCtx = this.blur.getContext('2d');
         blurCtx.clearRect(0, 0, this.width, this.height);
         blurCtx.globalAlpha = 0.6;
         blurCtx.drawImage(this.layers['effect'], 0, 0);
         requestAnimationFrame(this.mainloop.bind(this));
     }
-    add(scene) {
-        this.root.child.add(scene);
-    }
-    setFiber(fiber) {
-        this.root.fiber.add(fiber);
-    }
+    pushScene = scene => this.root.child.add(scene);
+    popScene = () => this.root.child.pop();
+    setState = state => this.root.generator.run(state);
     keybind(name, key) {
-        this.key[name] = key;
-        this.input[name] = false;
+        this.keyIndexes.set(name, this.key.length);
+        this.key.push(key);
+        this.inputBuffer.push(false);
+        this.inputBefore.push(false);
+        this.inputCurrent.push(false);
     }
+    IsDown = (name) => this.inputCurrent[this.keyIndexes.get(name)];
+    IsPress = (name) => this.inputCurrent[this.keyIndexes.get(name)] && !this.inputBefore[this.keyIndexes.get(name)];
+    IsUp = (name) => !this.inputCurrent[this.keyIndexes.get(name)] && this.inputBefore[this.keyIndexes.get(name)];
     isOutOfRange = (x, y, width, height) => x + width < 0 || x > this.width || y + height < 0 || y > this.height;
     get fps() { return Math.floor(1 / Util.average(this.fpsBuffer)) };
 }
@@ -121,10 +133,12 @@ class Util {
     }
     static random = (min, max) => Math.floor(Math.random() * (max + 1 - min) + min);
     static average = (arr) => arr.reduce((prev, current, i, arr) => prev + current) / arr.length;
+    static isGenerator = (obj) => obj && typeof obj.next === 'function' && typeof obj.throw === 'function';
 }
 class Mono {
     constructor(...args) {
         this.isExist = true;
+        this.isActive = true;
         this.mixs = [];
         for (const arg of args) {
             if (Array.isArray(arg)) {
@@ -139,13 +153,13 @@ class Mono {
     addMix(mix) {
         const name = mix.constructor.name.toLowerCase();
         if (name in this) return;
-        this[name] = mix;
         mix.owner = this;
+        this[name] = mix;
         this.mixs.push(mix);
         return this;
     }
     baseUpdate() {
-        if (!this.isExist) return;
+        if (!this.isExist || !this.isActive) return;
         this.update();
         for (const mix of this.mixs) {
             mix.update?.();
@@ -154,36 +168,22 @@ class Mono {
     }
     update() { }
     postUpdate() { }
-    draw(ctx) {
+    baseDraw(ctx) {
         if (!this.isExist) return;
+        this.draw(ctx);
         for (const mix of this.mixs) {
             mix.draw?.(ctx);
         }
     }
+    draw() { };
 }
-class Fiber {
+class Generator {
     constructor() {
-        this.fibers = [];
-        this.isRunning = false;
+        this.state;
     }
-    add(fiber) {
-        this.fibers.push(fiber);
-    }
+    run = state => this.state = state;
     update() {
-        if (this.fibers.length == 0 || this.isRunning) return;
-        this.isRunning = true;
-        let c = this.fibers.at(-1);
-        while (c) {
-            let g = c.next();
-            if (!g.done) {
-                if (!g.value) break;
-                this.add(g.value);
-                if (c === this.fibers.at(-1)) break;
-            }
-            if (c === this.fibers.at(-1)) this.fibers.pop();
-            c = this.fibers.at(-1);
-        }
-        this.isRunning = false;
+        if (this.state?.next().done) this.state = undefined;
     }
 }
 function* waitForTime(time) {
@@ -229,7 +229,6 @@ class Child {
         this.reserves = {};
         this.liveCount = 0;
         this.drawlayer = '';
-        this.isChildsPause = false;
     }
     addCreator(name, func, init = undefined) {
         this.maker[name] = { func, init };
@@ -254,22 +253,18 @@ class Child {
         this.liveCount++;
         return obj;
     }
-    add(obj) {
-        this.objs.push(obj);
-    }
+    add = (obj) => this.objs.push(obj);
+    pop = () => this.objs.pop();
     update() {
-        if (this.isChildsPause) return;
         for (const obj of this.objs) {
             obj.baseUpdate();
         }
     }
     draw(ctx) {
-        const before = ctx;
-        if (this.drawlayer.length > 0) ctx = game.layers[this.drawlayer].getContext('2d');
+        let currentCtx = this.drawlayer.length > 0 ? game.layers[this.drawlayer].getContext('2d') : ctx;
         for (const obj of this.objs) {
-            obj.draw(ctx);
+            obj.baseDraw(currentCtx);
         }
-        ctx = before;
     }
     each(func) {
         for (const obj of this.objs) {
@@ -396,50 +391,46 @@ class Menu extends Mono {
         this.pos.y = y;
         this.pos.align = align;
         this.size = size;
-        this.texts = [];
         this.callbacks = [];
         this.index = 0;
         this.color = '#ffffff';
         this.highlite = '#EDD425';
-        this.wait = 0.125;
-        this.child.add(this.curL = new Bun(Util.parseUnicode(emojiCat), 0, 0, { size: this.size, color: this.highlite, align: 2 }));
-        this.child.add(this.curR = new Bun(Util.parseUnicode(emojiCat), 0, 0, { size: this.size, color: this.highlite }));
+        this.wait = 0.2;
+        this.child.add(this.curL = new Bun(Util.parseUnicode(emojiCat), 0, 0, { size: this.size, color: this.highlite, align: 2, valign: 1 }));
+        this.child.add(this.curR = new Bun(Util.parseUnicode(emojiCat), 0, 0, { size: this.size, color: this.highlite, valign: 1 }));
+        this.indexOffset = this.child.objs.length;
     }
     add(text, callback) {
-        this.child.add(new Bun(text, this.pos.x, this.pos.y + this.size * 1.5 * (this.child.objs.length - 2), { size: this.size, color: this.color, font: 'Kaisei Decol', align: this.pos.align, valign: 0 }))
-        this.texts.push(text);
+        this.child.add(new Bun(text, this.pos.x, this.pos.y + this.size * 1.5 * (this.child.objs.length - 2), { size: this.size, color: this.color, font: 'Kaisei Decol', align: this.pos.align, valign: 1 }))
         this.callbacks.push(callback);
     }
     *stateSelect() {
-        this.move();
+        this.move(this.index);
         while (true) {
-            if (game.input.up) {
-                let item = this.child.objs[this.index + 2];
-                item.moji.color = this.color;
-                this.index = (this.index + (this.texts.length - 1)) % this.texts.length;
-                this.move();
-                yield waitForTime(this.wait);
+            if (game.IsDown('up')) {
+                this.move((this.index + (this.callbacks.length - 1)) % this.callbacks.length);
+                yield* waitForTime(this.wait);
                 continue;
             }
-            if (game.input.down) {
-                let item = this.child.objs[this.index + 2];
-                item.moji.color = this.color;
-                this.index = (this.index + 1) % this.texts.length;
-                this.move();
-                yield waitForTime(this.wait);
+            if (game.IsDown('down')) {
+                this.move((this.index + 1) % this.callbacks.length);
+                yield* waitForTime(this.wait);
                 continue;
             }
-            if (game.input.Space) {
-                this.callbacks[this.index]();
-                return;
+            if (game.IsPress('space')) {
+                const result = this.callbacks[this.index]();
+                if (!Util.isGenerator(result)) return;
+                yield* result;
             }
             yield undefined;
         }
     }
-    move() {
-        const item = this.child.objs[this.index + 2];
+    move(newIndex) {
+        this.child.objs[this.index + this.indexOffset].moji.color = this.color;
+        this.index = newIndex;
+        const item = this.child.objs[newIndex + this.indexOffset];
         item.moji.color = this.highlite;
-        const w = item.moji.text.length * this.size;
+        const w = item.moji.getWidth(game.layers['main'].getContext('2d'));
         const x = (w * 0.5) * this.pos.align;
         this.curL.pos.x = item.pos.x - x;
         this.curL.pos.y = item.pos.y;
@@ -447,9 +438,16 @@ class Menu extends Mono {
         this.curR.pos.y = item.pos.y;
     }
 }
+class Scene {
+    constructor() {
+        this.result = -1;
+        return [new Child(), this];
+    }
+}
 export const game = new Game();
 game.create = () => {
     game.keybind('space', ' ');
+    game.keybind('esc', 'Escape');
 
     const ctx = game.layers['bg'].getContext('2d');
     const grad = ctx.createLinearGradient(0, 0, 0, game.height);
@@ -493,7 +491,7 @@ export const data = {};
 }
 class SceneTitle extends Mono {
     constructor() {
-        super(new Fiber(), new Child());
+        super(new Scene());
         //タイトル
         const titleSize = game.width / 11;
         let titleY = game.height * 0.25;
@@ -501,12 +499,17 @@ class SceneTitle extends Mono {
         this.child.add(new Bun('かもしれないなにか', game.width * 0.5, titleY + titleSize * 1.5, { size: titleSize, color: '#ffffff', font: 'Kaisei Decol', align: 1, valign: 1 }));
         //メニュー
         this.child.add(this.titleMenu = new Menu(game.width * 0.5, game.height * 0.5, titleSize, 1));
-        this.titleMenu.add('スタート', () => undefined);
+        this.titleMenu.add('スタート', () => {
+            this.isExist = false;
+            const play = new ScenePlay();
+            game.pushScene(play);
+            return play.stateDefault();
+        });
         this.titleMenu.add('ハイスコア', () => undefined);
         this.titleMenu.add('クレジット', () => undefined);
-        game.setFiber(this.stateTitle());
+        game.setState(this.stateDefault());
     }
-    *stateTitle() {
+    *stateDefault() {
         while (true) {
             yield* this.titleMenu.stateSelect();
         }
@@ -514,21 +517,18 @@ class SceneTitle extends Mono {
 }
 class ScenePlay extends Mono {
     constructor() {
-        super(new Fiber(), new Child());
-        // this.child.add(this.text = new Bun('シューティングゲームのようなもの', { size: 25,color: '#666666', align: 1, valign: 1 }));
-        // this.text.pos.x = game.width * 0.5;
-        // this.text.pos.y = game.height * 0.5
-
+        super(new Generator(), new Scene());
+        //プレイヤー
         this.player = new Player();
         this.child.add(this.player.bullets);
         this.child.add(this.player);
-
+        //敵
         this.child.add(this.baddiesbullets = Baddie.createBullets());
         this.child.add(this.baddies = Baddie.createBaddies());
-
+        //パーティクル
         this.child.add(this.effect = new Tsubu());
         this.effect.child.layer = 'effect';
-
+        //UI
         this.child.add(this.ui = new Iremono());
         this.ui.child.layer = 'ui';
         this.ui.child.add(this.textScore = new Bun(() => `SCORE ${data.score}`, { font: 'Impact' }));
@@ -543,8 +543,8 @@ class ScenePlay extends Mono {
         // this.textScore.pos.x = 2;
         // this.textScore.pos.y = 48;
 
-        // this.fiber.add(this.stageRunner(con.stages[0]));
-        this.fiber.add(this.stageRunner2());
+        // this.fiber.add(this.stageRunner(con.stages[0]));        
+        this.generator.run(this.stageRunner2());
     }
     postUpdate() {
         {
@@ -576,6 +576,21 @@ class ScenePlay extends Mono {
 
                 bullet.putback();
             })
+        }
+    }
+    *stateDefault() {
+        while (true) {
+            this.player.receiveInput();
+            if (game.IsDown('esc')) {
+                console.log('ポーズ');
+                this.isActive = false;
+                const pause = new ScenePause();
+                game.pushScene(pause);
+                yield* pause.stateDefault();
+                if (pause.scene.result === 0) return;
+                this.isActive = true;
+            }
+            yield undefined;
         }
     }
     *stageRunner(stage) {
@@ -626,45 +641,48 @@ class Player extends Mono {
             bullet.brush.color = '#ffff00';
         });
     }
-    update() {
+    receiveInput() {
         this.pos.vx = 0;
         this.pos.vy = 0;
-        if (game.input.left) {
+        if (game.IsDown('left')) {
             this.pos.vx = -playerMoveSpeed;
         }
-        if (game.input.right) {
+        if (game.IsDown('right')) {
             this.pos.vx = playerMoveSpeed;
         }
-        if (game.input.up) {
+        if (game.IsDown('up')) {
             this.pos.vy = -playerMoveSpeed;
         }
-        if (game.input.down) {
+        if (game.IsDown('down')) {
             this.pos.vy = playerMoveSpeed;
         }
         if (this.pos.vx !== 0 && this.pos.vy !== 0) {
             this.pos.vx *= Util.nanameCorrect;
             this.pos.vy *= Util.nanameCorrect;
         }
-        if (game.input.space) {
-            if (this.bulletCooltime < 0) {
-                this.bulletCooltime = playerBulletRate;
-                let lr = -1;
-                for (let i = 0; i < 2; i++) {
-                    const bullet = this.bullets.child.get(Tofu.name);
-                    bullet.pos.x = this.pos.x + (10 * lr);
-                    bullet.pos.y = this.pos.y;
-                    bullet.pos.vy = -400;
-                    lr *= -1;
-                }
-            } else {
-                this.bulletCooltime -= 1 * game.delta;
+        if (game.IsDown('space')) {
+            this.shot();
+        }
+    }
+    shot() {
+        if (this.bulletCooltime < 0) {
+            this.bulletCooltime = playerBulletRate;
+            let lr = -1;
+            for (let i = 0; i < 2; i++) {
+                const bullet = this.bullets.child.get(Tofu.name);
+                bullet.pos.x = this.pos.x + (10 * lr);
+                bullet.pos.y = this.pos.y;
+                bullet.pos.vy = -400;
+                lr *= -1;
             }
+        } else {
+            this.bulletCooltime -= 1 * game.delta;
         }
     }
 }
 class Baddie extends Mono {
     constructor(char) {
-        super(new Moji(char, 0, 0, { size: 40, color: '#ffffff', align: 1, valign: 1 }))
+        super(new Moji(char, 0, 0, { size: 40, color: '#000000', align: 1, valign: 1 }))
         this.hp = 0;
         this.bullets;
         this.bulletCooltime = 0;
@@ -674,6 +692,7 @@ class Baddie extends Mono {
         for (const bad of Object.values(con.baddies)) {
             baddies.child.addCreator(bad.name, () => new Baddie(Util.parseUnicode(bad.char)), (baddie) => {
                 baddie.hp = bad.hp;
+                baddie.bulletCooltime = 0;
             });
         }
         return baddies;
@@ -686,12 +705,15 @@ class Baddie extends Mono {
             bullet.pos.height = 4;
             bullet.pos.align = 1;
             bullet.pos.valign = 1;
-            bullet.brush.color = '#ff4444';
+            bullet.brush.color = '#ffffff';
         });
         return bullets;
     }
     update() {
-        if (this.bulletCooltime < 0) {
+        this.shot();
+    }
+    shot() {
+        if (this.bulletCooltime <= 0) {
             this.bulletCooltime = baddiesBulletRate;
             let bullet = this.bullets.child.get(Tofu.name);
             bullet.pos.x = this.pos.x;
@@ -719,5 +741,29 @@ class Baddie extends Mono {
         return this.hp <= 0;
     }
 }
-game.add(new SceneTitle());
+class ScenePause extends Mono {
+    constructor() {
+        super(new Scene());
+        const titleSize = game.width / 11;
+        let titleY = game.height * 0.25;
+        this.child.add(new Bun('ポーズ', game.width * 0.5, titleY, { size: titleSize, color: '#EDD425', font: 'Kaisei Decol', align: 1, valign: 1 }));
+        this.child.add(this.menu = new Menu(game.width * 0.5, game.height * 0.5, titleSize, 1));
+        this.menu.add('ゲームを続ける', () => {
+            game.popScene();
+        });
+        this.menu.add('タイトルに戻る', () => {
+            this.scene.result = 0;
+            game.popScene();
+            game.popScene();
+        });
+    }
+    draw(ctx) {
+        ctx.fillStyle = '#00000080';
+        ctx.fillRect(0, 0, game.width, game.height);
+    }
+    *stateDefault() {
+        yield* this.menu.stateSelect();
+    }
+}
+game.pushScene(new SceneTitle());
 game.start();
