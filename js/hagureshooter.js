@@ -29,7 +29,8 @@ const layerName = ['bg', 'main', 'effect', 'ui'];
 export let text = {
     title: 'シューティングゲーム', title2: 'かもしれないなにか', pressanykey: 'Xキーを押してね',
     start: 'スタート', highscore: 'ハイスコア', credit: 'クレジット',
-    pause: 'ポーズ', resume: 'ゲームを続ける', returntitle: 'タイトルに戻る'
+    pause: 'ポーズ', resume: 'ゲームを続ける', restart: '最初からやり直す', returntitle: 'タイトルに戻る',
+    gameover: 'ゲームオーバー', continue: 'コンティニュー'
 }
 const keyRepeatFirstWait = 0.25;
 const keyRepeatWait = 0.125;
@@ -115,7 +116,8 @@ class Input {
     init() {
         addEventListener('keydown', this._keyEvent(true));
         addEventListener('keyup', this._keyEvent(false));
-        addEventListener('gamepadconnected', (e) => this.padIndex = e.gamepad.index);
+        addEventListener('gamepadconnected', e => this.padIndex = e.gamepad.index);
+        addEventListener('gamepadconnected', e => this.padIndex = undefined);
         game.input.keybind('left', 'ArrowLeft', { button: 14, axes: 0 });
         game.input.keybind('right', 'ArrowRight', { button: 15, axes: 1 });
         game.input.keybind('up', 'ArrowUp', { button: 12, axes: 2 });
@@ -183,6 +185,8 @@ class Util {
 }
 class Mono {
     constructor(...args) {
+        this.id = -1;
+        this.putback;
         this.isExist = true;
         this.isActive = true;
         this.mixs = [];
@@ -309,6 +313,12 @@ class Child {
     }
     add = (obj) => this.objs.push(obj);
     pop = () => this.objs.pop();
+    putbackAll() {
+        for (const obj of this.objs) {
+            if (!obj.isExist && obj.id < 0) continue;
+            obj.putback();
+        }
+    }
     update() {
         for (const obj of this.objs) {
             obj.baseUpdate();
@@ -517,18 +527,19 @@ game.create = () => {
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, game.width, game.height);
 };
-export const gd = {};
+export const gameData = {};
 {
     class BaddieData {
-        constructor(name, char, hp) {
+        constructor(name, char, hp, point) {
             this.name = name;
             this.char = char;
             this.hp = hp;
+            this.point = point;
         }
     }
-    gd.baddies = {};
-    gd.baddies['obake'] = new BaddieData('obake', emojiGhost, 5);
-    gd.baddies['crow'] = new BaddieData('crow', emojiCrow, 5);
+    gameData.baddies = {};
+    gameData.baddies['obake'] = new BaddieData('obake', emojiGhost, 5, 200);
+    gameData.baddies['crow'] = new BaddieData('crow', emojiCrow, 5, 100);
 
     class SpawnData {
         constructor(time, x, y, name) {
@@ -538,17 +549,17 @@ export const gd = {};
             this.name = name;
         }
     }
-    gd.stages = [];
+    gameData.stages = [];
     const stage1 = [];
-    gd.stages.push(stage1);
+    gameData.stages.push(stage1);
     stage1.push(new SpawnData(2, 160, 50, 'obake'));
     // stage1.push(new SpawnData(2, 100, 50, 'obake'));
     // stage1.push(new SpawnData(3, 150, 50, 'obake'));
     // stage1.push(new SpawnData(4, 200, 50, 'obake'));
 }
-export const sd = {};
+export const shared = {};
 {
-    sd.score = 0;
+    shared.score = 0;
 }
 class SceneTitle extends Mono {
     constructor() {
@@ -597,7 +608,7 @@ class ScenePlay extends Mono {
         //UI
         this.child.add(this.ui = new Iremono());
         this.ui.child.drawlayer = 'ui';
-        this.ui.child.add(this.textScore = new Bun(() => `SCORE ${sd.score}`, { font: 'Impact' }));
+        this.ui.child.add(this.textScore = new Bun(() => `SCORE ${shared.score}`, { font: 'Impact' }));
         this.textScore.pos.x = 2;
         this.textScore.pos.y = 2;
         this.ui.child.add(this.fpsView = new Bun(() => `FPS: ${game.fps}`, { font: 'Impact' }));
@@ -626,7 +637,7 @@ class ScenePlay extends Mono {
                     if (!bullet.pos.isIntersect(baddie.pos)) return;
                     // console.log('ぐわぁぁぁ');
                     bullet.putback();
-                    if (baddie.hit(1)) {
+                    if (baddie.unit.hit(1, shared)) {
                         this.effect.emittCircle(8, 300, 0.5, '#ffffff', baddie.pos.x, baddie.pos.y, 0.97)
                         baddie.putback();
                     }
@@ -636,17 +647,29 @@ class ScenePlay extends Mono {
         {
             this.baddiesbullets.child.each((bullet) => {
                 if (game.isOutOfRange(bullet.pos.getScreenX(), bullet.pos.getScreenY(), bullet.pos.width, bullet.pos.height)) bullet.putback();
+                if (!this.player.isExist) return;
                 if (!bullet.pos.isIntersect(this.player.pos)) return;
                 // console.log('ぎにゃー');
-                this.effect.emittCircle(8, 300, 0.5, '#ffffff', this.player.pos.x, this.player.pos.y, 0.97)
-
                 bullet.putback();
+                if (this.player.unit.hit(1, shared)) {
+                    this.effect.emittCircle(8, 300, 0.5, '#ffffff', this.player.pos.x, this.player.pos.y, 0.97)
+                }
             })
         }
     }
     *stateDefault() {
         while (true) {
             yield undefined;
+            if (this.player.unit.dead) {
+                this.player.isExist = false;
+                const gameover = new SceneGameOver();
+                game.pushScene(gameover);
+                yield* gameover.stateDefault();
+                this.resetGame();
+                if (gameover.scene.result === 0) {
+                    return;
+                }
+            }
             if (game.input.IsPress('x')) {
                 this.isActive = false;
                 const pause = new ScenePause();
@@ -689,7 +712,11 @@ class ScenePlay extends Mono {
         }
     }
     resetGame() {
-        sd.score = 0;
+        shared.score = 0;
+        this.player.reset();
+        this.player.bullets.child.putbackAll();
+        this.baddies.child.putbackAll();
+        this.baddiesbullets.child.putbackAll();
     }
     spawnBaddie(x, y, name) {
         const bad = this.baddies.child.get(name);
@@ -698,10 +725,23 @@ class ScenePlay extends Mono {
         bad.bullets = this.baddiesbullets;
     }
 }
+class Unit {
+    constructor() {
+        this.hp = 0;
+        this.point = 0;
+    }
+    hit(damage, shared) {
+        this.hp -= damage;
+        shared.score += this.point;
+        return this.hp <= 0;
+    }
+    get dead() { return this.hp <= 0 }
+}
 class Player extends Mono {
     constructor() {
-        super(new Moji(Util.parseUnicode(emojiCat), game.width * 0.5, game.height * 40, { size: 40, color: '#ffffff', align: 1, valign: 1 }));
+        super(new Moji(Util.parseUnicode(emojiCat), 0, 0, { size: 40, color: '#ffffff', align: 1, valign: 1 }), new Unit());
         this.bulletCooltime = 0;
+        this.reset();
         this.bullets = new Iremono();
         this.bullets.child.drawlayer = 'effect';
         this.bullets.child.addCreator(Tofu.name, () => new Tofu(), (bullet) => {
@@ -711,6 +751,13 @@ class Player extends Mono {
             bullet.pos.valign = 1;
             bullet.brush.color = '#ffff00';
         });
+    }
+    reset() {
+        this.isExist = true;
+        this.pos.x = game.width * 0.5;
+        this.pos.y = game.height * 40
+        this.unit.hp = 1;
+        this.bulletCooltime = 0;
     }
     receiveInput() {
         this.pos.vx = 0;
@@ -753,16 +800,16 @@ class Player extends Mono {
 }
 class Baddie extends Mono {
     constructor(char) {
-        super(new Moji(char, 0, 0, { size: 40, color: '#000000', align: 1, valign: 1 }))
-        this.hp = 0;
+        super(new Moji(char, 0, 0, { size: 40, color: '#000000', align: 1, valign: 1 }), new Unit())
         this.bullets;
         this.bulletCooltime = 0;
     }
     static createBaddies() {
         const baddies = new Iremono();
-        for (const bad of Object.values(gd.baddies)) {
+        for (const bad of Object.values(gameData.baddies)) {
             baddies.child.addCreator(bad.name, () => new Baddie(Util.parseUnicode(bad.char)), (baddie) => {
-                baddie.hp = bad.hp;
+                baddie.unit.hp = bad.hp;
+                baddie.unit.point = bad.point;
                 baddie.bulletCooltime = 0;
             });
         }
@@ -806,11 +853,6 @@ class Baddie extends Mono {
             this.bulletCooltime -= 1 * game.delta;
         }
     }
-    hit(damage) {
-        this.hp -= damage;
-        sd.score += 100;
-        return this.hp <= 0;
-    }
 }
 class ScenePause extends Mono {
     constructor() {
@@ -820,6 +862,7 @@ class ScenePause extends Mono {
         this.child.add(new Bun(text.pause, game.width * 0.5, titleY, { size: titleSize, color: '#EDD425', font: 'Kaisei Decol', align: 1, valign: 1 }));
         this.child.add(this.menu = new Menu(game.width * 0.5, game.height * 0.5, titleSize, 1));
         this.menu.add(text.resume);
+        this.menu.add(text.restart);
         this.menu.add(text.returntitle);
     }
     draw(ctx) {
@@ -833,6 +876,34 @@ class ScenePause extends Mono {
         switch (this.menu.current()) {
             case text.resume:
             case Menu.cancel:
+                game.popScene();
+                break;
+            case text.restart:
+
+                break;
+            case text.returntitle:
+                this.scene.result = 0;
+                game.popScene();
+                game.popScene();
+                break;
+        }
+    }
+}
+class SceneGameOver extends Mono {
+    constructor() {
+        super(new Scene());
+        const titleSize = game.width / 11;
+        let titleY = game.height * 0.25;
+        this.child.add(new Bun(text.gameover, game.width * 0.5, titleY, { size: titleSize, color: '#EDD425', font: 'Kaisei Decol', align: 1, valign: 1 }));
+        this.child.add(this.menu = new Menu(game.width * 0.5, game.height * 0.5, titleSize, 1));
+        this.menu.isEnableCancel = false;
+        this.menu.add(text.continue);
+        this.menu.add(text.returntitle);
+    }
+    *stateDefault() {
+        yield* this.menu.stateSelect();
+        switch (this.menu.current()) {
+            case text.continue:
                 game.popScene();
                 break;
             case text.returntitle:
