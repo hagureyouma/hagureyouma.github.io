@@ -5,17 +5,6 @@ const iconUrl = 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/a
 // const fontUrl='https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c&display=swap';
 const fontUrl = 'https://fonts.googleapis.com/css2?family=Kaisei+Decol&display=swap';
 
-window.addEventListener("gamepadconnected", (e) => {
-    const gp = navigator.getGamepads()[e.gamepad.index];
-    console.log(
-        "Gamepad connected at index %d: %s. %d buttons, %d axes.",
-        gp.index,
-        gp.id,
-        gp.buttons.length,
-        gp.axes.length,
-    );
-});
-
 const colorPumpkin = '#F89537';
 
 const emojiGhost = 'f6e2';
@@ -44,8 +33,7 @@ class Game {
     constructor(width = 320, height = 480) {
         document.querySelector('head').insertAdjacentHTML('beforeend', `<link rel="stylesheet" type="text/css" href="${iconUrl}" /> `);
         document.querySelector('head').insertAdjacentHTML('beforeend', `<link rel="stylesheet" type="text/css" href="${fontUrl}" /> `);
-        this.width = width;
-        this.height = height;
+        this.screenRect = new Rect().set(0, 0, width, height);
         this.layers = {};
         for (const layer of layerName) {
             const canvas = document.createElement('canvas');
@@ -67,6 +55,8 @@ class Game {
         this.delta;
         this.fpsBuffer = Array.from({ length: 60 });
     }
+    get width() { return this.screenRect.width };
+    get height() { return this.screenRect.height };
     create() { }
     start() {
         //todo:preload?
@@ -103,7 +93,7 @@ class Game {
     pushScene = scene => this.root.child.add(scene);
     popScene = () => this.root.child.pop();
     setState = state => this.root.generator.run(state);
-    isOutOfRange = (x, y, width, height) => x + width < 0 || x > this.width || y + height < 0 || y > this.height;
+    isOutOfRange = (rect) => !this.screenRect.isIntersect(rect);
     get fps() { return Math.floor(1 / Util.average(this.fpsBuffer)) };
 }
 class Input {
@@ -117,7 +107,7 @@ class Input {
         addEventListener('keydown', this._keyEvent(true));
         addEventListener('keyup', this._keyEvent(false));
         addEventListener('gamepadconnected', e => this.padIndex = e.gamepad.index);
-        addEventListener('gamepadconnected', e => this.padIndex = undefined);
+        addEventListener('gamepaddisconnected', e => this.padIndex = undefined);
         game.input.keybind('left', 'ArrowLeft', { button: 14, axes: 0 });
         game.input.keybind('right', 'ArrowRight', { button: 15, axes: 1 });
         game.input.keybind('up', 'ArrowUp', { button: 12, axes: 2 });
@@ -183,6 +173,22 @@ class Util {
     static isGenerator = (obj) => obj && typeof obj.next === 'function' && typeof obj.throw === 'function';
     static isEven = (n) => n % 2 === 0;
 }
+class Rect {
+    constructor() {
+        this.x = 0;
+        this.y = 0;
+        this.width = 0;
+        this.height = 0;
+    }
+    set(x, y, width, height) {
+        this.x = x;
+        this.y = y;
+        this.width = width;
+        this.height = height;
+        return this;
+    }
+    isIntersect = (rect) => rect.x + rect.width > this.x && this.x + this.width > rect.x && rect.y + rect.height > this.y && this.y + this.height > rect.y;
+}
 class Mono {
     constructor(...args) {
         this.id = -1;
@@ -234,7 +240,11 @@ class Generator {
     run = state => this.state = state;
     update() {
         if (!this.state) return;
-        this.state?.next();
+        this.state?.next(2)
+        let result;
+        while (result) {
+            result = this.state?.next(result).value;
+        }
     }
 }
 function* waitForTime(time) {
@@ -263,6 +273,7 @@ class Pos {
         this.align = this.valign = 0;//left top=0,center midle=1,right bottom=2
         this.vx = this.vy = 0;
         this.vxc = this.vyc = 1;
+        this._rect = new Rect();
     }
     update() {
         this.x += this.vx * game.delta;
@@ -272,30 +283,45 @@ class Pos {
     }
     getScreenX = () => Math.floor(this.x - this.align * this.width * 0.5);
     getScreenY = () => Math.floor(this.y - this.valign * this.height * 0.5);
-    isIntersect(other) {
-        const x = this.getScreenX();
-        const y = this.getScreenY();
-        const ox = other.getScreenX();
-        const oy = other.getScreenY();
-        return ox + other.width > x && x + this.width > ox && oy + other.height > y && y + this.height > oy;
+    get rect() { return this._rect.set(this.getScreenX(), this.getScreenY(), this.width, this.height) }
+}
+class Collision {
+    constructor() {
+        this._rect = new Rect();
+        this.isVisible = true;
+        return [new Pos(), this];
+    }
+    set = (width, height) => this._rect.set(0, 0, width, height);
+    get rect() {
+        const pos = this.owner.pos;
+        const x = Math.floor(pos.x - pos.align * this._rect.width * 0.5);
+        const y = Math.floor(pos.y - pos.valign * this._rect.height * 0.5);
+        return this._rect.set(x, y, this._rect.width, this._rect.height);
+    }
+    ishit = (obj) => this.rect.isIntersect(obj.collision.rect);
+    draw(ctx) {
+        if (!this.isVisible) return;
+        ctx.fillStyle = '#ff000080';
+        const r = this.rect;
+        ctx.fillRect(r.x, r.y, r.width, r.height);
     }
 }
 class Child {
     constructor() {
-        this.maker = {};
+        this.creator = {};
         this.objs = [];
         this.reserves = {};
         this.liveCount = 0;
         this.drawlayer = '';
     }
-    addCreator(name, func, init = undefined) {
-        this.maker[name] = { func, init };
+    addCreator(name, func) {
+        this.creator[name] = func;
     }
     get(name) {
         let obj;
         if (name in this.reserves === false) this.reserves[name] = [];
         if (this.reserves[name].length === 0) {
-            obj = this.maker[name].func();
+            obj = this.creator[name]();
             obj.id = this.objs.length;
             obj.putback = () => {
                 obj.isExist = false;
@@ -307,7 +333,6 @@ class Child {
             obj = this.objs[this.reserves[name].pop()];
         }
         obj.isExist = true;
-        this.maker[name].init?.(obj)
         this.liveCount++;
         return obj;
     }
@@ -338,8 +363,8 @@ class Child {
     }
 }
 class Jumyo {
-    constructor(lifeSpan) {
-        this.lifeSpan = lifeSpan;
+    constructor() {
+        this.lifeSpan = 0;
         this.lifeStage = 0;
     }
     update() {
@@ -351,27 +376,29 @@ class Jumyo {
     }
     get percentage() { return this.lifeStage / this.lifeSpan };
 }
-class Iremono extends Mono {
-    constructor() {
-        super(new Child());
-    }
-}
 class Moji {
-    constructor(text, x, y, { size = 20, color = '#ffffff', font = 'FontAwesome', weight = 'normal', align = 0, valign = 0 } = {}) {
+    constructor() {
         const pos = new Pos();
+        this.text = '';
+        this.weight = 0;
+        this.size = 0;
+        this.font = 0;
+        this.color = '';
+        this.baseLine = 'top';
+        return [pos, this];
+    }
+    set(text, x, y, { size = 20, color = '#ffffff', font = 'FontAwesome', weight = 'normal', align = 0, valign = 0 } = {}) {
         this.text = text;
         this.weight = weight;
         this.size = size;
         this.font = font;
         this.color = color;
-        this.baseLine = 'top';
-        this.rotate = 0;
+        const pos = this.owner.pos;
         pos.x = x;
         pos.y = y;
         pos.height = size;
         pos.align = align;
         pos.valign = valign;
-        return [pos, this];
     }
     get _getText() { return typeof this.text === 'function' ? this.text() : this.text };
     getWidth = (ctx) => this._getWidth(ctx, this._getText);
@@ -392,9 +419,10 @@ class Moji {
         ctx.fillText(text, x, y);
     }
 }
-class Bun extends Mono {
+class label extends Mono {
     constructor(text, x, y, { size = 20, color = '#ffffff', font = 'FontAwesome', weight = 'normal', align = 0, valign = 0 } = {}) {
-        super(new Moji(text, x, y, { size, color, font, weight, align, valign }));
+        super(new Moji());
+        this.moji.set(text, x, y, { size, color, font, weight, align, valign });
     }
 }
 class Brush {
@@ -411,25 +439,15 @@ class Brush {
         ctx.fillRect(x, y, pos.width, pos.height);
     }
 }
-class Tofu extends Mono {
-    constructor() {
-        super(new Brush());
-    }
-}
 class Tsubu extends Mono {
     constructor() {
         super(new Child());
         this.child.addCreator(Tsubu.name, () => {
-            const t = new Tofu();
-            t.addMix(new Jumyo());
+            const t = new Mono(new Brush(), new Jumyo());
             t.update = () => t.brush.alpha = Math.floor(255 - (t.jumyo.percentage * 255));
-            return t;
-        }, (t) => {
-            t.pos.width = 8;
-            t.pos.height = 8;
             t.pos.align = 1;
             t.pos.valign = 1;
-            t.jumyo.lifeStage = 0;
+            return t;
         });
     }
     emittCircle(count, speed, lifeSpan, color, x, y, c) {
@@ -438,6 +456,8 @@ class Tsubu extends Mono {
             const t = this.child.get(Tsubu.name);
             t.brush.color = color;
             t.brush.alpha = 255;
+            t.pos.width = 8;
+            t.pos.height = 8;
             t.pos.x = x;
             t.pos.y = y;
             t.pos.vx = Util.degToX(deg * i) * speed;
@@ -445,6 +465,7 @@ class Tsubu extends Mono {
             t.pos.vxc = c;
             t.pos.vyc = c;
             t.jumyo.lifeSpan = lifeSpan;
+            t.jumyo.lifeStage = 0;
         }
     }
 }
@@ -459,12 +480,12 @@ class Menu extends Mono {
         this.color = '#ffffff';
         this.highlite = '#EDD425';
         this.isEnableCancel = true;
-        this.child.add(this.curL = new Bun(Util.parseUnicode(emojiCat), 0, 0, { size: this.size, color: this.highlite, align: 2, valign: 1 }));
-        this.child.add(this.curR = new Bun(Util.parseUnicode(emojiCat), 0, 0, { size: this.size, color: this.highlite, valign: 1 }));
+        this.child.add(this.curL = new label(Util.parseUnicode(emojiCat), 0, 0, { size: this.size, color: this.highlite, align: 2, valign: 1 }));
+        this.child.add(this.curR = new label(Util.parseUnicode(emojiCat), 0, 0, { size: this.size, color: this.highlite, valign: 1 }));
         this.indexOffset = this.child.objs.length;
     }
     add(text) {
-        this.child.add(new Bun(text, this.pos.x, this.pos.y + this.size * 1.5 * (this.child.objs.length - 2), { size: this.size, color: this.color, font: 'Kaisei Decol', align: this.pos.align, valign: 1 }))
+        this.child.add(new label(text, this.pos.x, this.pos.y + this.size * 1.5 * (this.child.objs.length - 2), { size: this.size, color: this.color, font: 'Kaisei Decol', align: this.pos.align, valign: 1 }))
     }
     *stateSelect(newIndex = this.index) {
         const length = this.child.objs.length - this.indexOffset;
@@ -561,14 +582,25 @@ export const shared = {};
 {
     shared.score = 0;
 }
+class Watch extends Mono {
+    constructor() {
+        super(new Pos(), new Child());
+        this.child.drawlayer = 'ui';
+        this.child.addCreator('label', () => new label());
+    }
+    add(watch) {
+        const l = this.child.get('label');
+        l.moji.set(watch, 2, this.pos.y + ((this.child.objs.length - 1) * l.moji.size * 1.5), { font: 'Impact' })
+    }
+}
 class SceneTitle extends Mono {
     constructor() {
         super(new Scene());
         //タイトル
         const titleSize = game.width / 11;
         const titleY = game.height * 0.25;
-        this.child.add(new Bun(text.title, game.width * 0.5, titleY, { size: titleSize, color: '#EDD425', font: 'Kaisei Decol', align: 1, valign: 1 }));
-        this.child.add(new Bun(text.title2, game.width * 0.5, titleY + titleSize * 1.5, { size: titleSize, color: '#ffffff', font: 'Kaisei Decol', align: 1, valign: 1 }));
+        this.child.add(new label(text.title, game.width * 0.5, titleY, { size: titleSize, color: '#EDD425', font: 'Kaisei Decol', align: 1, valign: 1 }));
+        this.child.add(new label(text.title2, game.width * 0.5, titleY + titleSize * 1.5, { size: titleSize, color: '#ffffff', font: 'Kaisei Decol', align: 1, valign: 1 }));
         //メニュー
         this.child.add(this.titleMenu = new Menu(game.width * 0.5, game.height * 0.5, titleSize, 1));
         this.titleMenu.isEnableCancel = false;
@@ -599,22 +631,23 @@ class ScenePlay extends Mono {
         this.player = new Player();
         this.child.add(this.player.bullets);
         this.child.add(this.player);
-        //敵
-        this.child.add(this.baddiesbullets = Baddie.createBullets());
+        //敵キャラ
+        this.child.add(this.baddiesbullets = new BulletBox());
         this.child.add(this.baddies = Baddie.createBaddies());
         //パーティクル
         this.child.add(this.effect = new Tsubu());
         this.effect.child.drawlayer = 'effect';
         //UI
-        this.child.add(this.ui = new Iremono());
+        this.child.add(this.ui = new Mono(new Child()));
         this.ui.child.drawlayer = 'ui';
-        this.ui.child.add(this.textScore = new Bun(() => `SCORE ${shared.score}`, { font: 'Impact' }));
-        this.textScore.pos.x = 2;
-        this.textScore.pos.y = 2;
-        this.ui.child.add(this.fpsView = new Bun(() => `FPS: ${game.fps}`, { font: 'Impact' }));
-        this.fpsView.pos.x = game.width - 2;
-        this.fpsView.pos.y = 2;
+        this.ui.child.add(this.textScore = new label(() => `SCORE ${shared.score}`, 2, 2, { font: 'Impact' }));
+        this.ui.child.add(this.fpsView = new label(() => `FPS: ${game.fps}`, game.width - 2, 2, { font: 'Impact' }));
         this.fpsView.pos.align = 2;
+
+        this.child.add(this.debug = new Watch());
+        this.debug.pos.y = 40;
+        this.debug.add(() => `ENEMY: ${this.baddies.child.liveCount}`);
+        this.debug.add(() => `ENEMYBULLET: ${this.baddiesbullets.child.liveCount}`);
 
         // this.child.add(this.textScore = new Bun(() => `Baddie:${this.baddies.child.liveCount} Bullets:${this.baddiesbullets.child.liveCount}`, { font: 'Impact' }));
         // this.textScore.pos.x = 2;
@@ -624,44 +657,33 @@ class ScenePlay extends Mono {
         this.generator.run(this.stageRunner2());
     }
     postUpdate() {
-        {
-            const halfX = this.player.pos.width * 0.5;
-            const halfY = this.player.pos.height * 0.5;
-            this.player.pos.x = Util.clamp(halfX, this.player.pos.x, game.width - halfX);
-            this.player.pos.y = Util.clamp(halfY, this.player.pos.y, game.height - halfY);
+        const _ishit = (bullet, target) => {
+            if (!bullet.collision.ishit(target)) return;
+            bullet.putback();
+            if (!target.unit.hit(1, shared)) return;
+            this.effect.emittCircle(8, 300, 0.5, '#ffffff', target.pos.x, target.pos.y, 0.97)
+            target.knockdown();
         }
-        {
-            this.player.bullets.child.each((bullet) => {
-                if (game.isOutOfRange(bullet.pos.getScreenX(), bullet.pos.getScreenY(), bullet.pos.width, bullet.pos.height)) bullet.putback();
-                this.baddies.child.each((baddie) => {
-                    if (!bullet.pos.isIntersect(baddie.pos)) return;
-                    // console.log('ぐわぁぁぁ');
-                    bullet.putback();
-                    if (baddie.unit.hit(1, shared)) {
-                        this.effect.emittCircle(8, 300, 0.5, '#ffffff', baddie.pos.x, baddie.pos.y, 0.97)
-                        baddie.putback();
-                    }
-                })
-            });
-        }
-        {
-            this.baddiesbullets.child.each((bullet) => {
-                if (game.isOutOfRange(bullet.pos.getScreenX(), bullet.pos.getScreenY(), bullet.pos.width, bullet.pos.height)) bullet.putback();
-                if (!this.player.isExist) return;
-                if (!bullet.pos.isIntersect(this.player.pos)) return;
-                // console.log('ぎにゃー');
+        this.player.bullets.child.each((bullet) => {
+            if (game.isOutOfRange(bullet.collision.rect)) {
                 bullet.putback();
-                if (this.player.unit.hit(1, shared)) {
-                    this.effect.emittCircle(8, 300, 0.5, '#ffffff', this.player.pos.x, this.player.pos.y, 0.97)
-                }
-            })
-        }
+                return;
+            }
+            this.baddies.child.each((baddie) => _ishit(bullet, baddie));
+        });
+        this.baddiesbullets.child.each((bullet) => {
+            if (game.isOutOfRange(bullet.collision.rect)) {
+                bullet.putback();
+                return;
+            }
+            if (this.player.unit.isDead) return;
+            _ishit(bullet, this.player);
+        })
     }
     *stateDefault() {
         while (true) {
             yield undefined;
-            if (this.player.unit.dead) {
-                this.player.isExist = false;
+            if (this.player.unit.isDead) {
                 const gameover = new SceneGameOver();
                 game.pushScene(gameover);
                 yield* gameover.stateDefault();
@@ -674,10 +696,13 @@ class ScenePlay extends Mono {
                 this.isActive = false;
                 const pause = new ScenePause();
                 game.pushScene(pause);
-                yield* pause.stateDefault();
-                if (pause.scene.result === 0) {
-                    this.resetGame();
-                    return;
+                switch (yield* pause.stateDefault()) {
+                    case text.restart:
+                        this.resetGame();
+                        break;
+                    case text.returntitle:
+                        this.resetGame();
+                        return;
                 }
                 this.isActive = true;
             }
@@ -696,14 +721,14 @@ class ScenePlay extends Mono {
         }
     }
     *stageRunner2() {
-        let timeCounter = 1;
+        let timeCounter = 0;
         while (true) {
-            if (this.baddies.child.liveCount > 30) {
+            if (this.baddies.child.liveCount >= 0) {
                 yield undefined;
                 continue;
             }
             if (timeCounter < 0) {
-                timeCounter = 1;
+                timeCounter = 0;
                 this.spawnBaddie(Util.random(30, game.width - 30), Util.random(30, game.height * 0.5), 'crow');
             } else {
                 timeCounter -= 1 * game.delta;
@@ -735,22 +760,16 @@ class Unit {
         shared.score += this.point;
         return this.hp <= 0;
     }
-    get dead() { return this.hp <= 0 }
+    get isDead() { return this.hp <= 0 }
 }
 class Player extends Mono {
     constructor() {
-        super(new Moji(Util.parseUnicode(emojiCat), 0, 0, { size: 40, color: '#ffffff', align: 1, valign: 1 }), new Unit());
+        super(new Moji(), new Collision(), new Unit());
+        this.moji.set(Util.parseUnicode(emojiCat), 0, 0, { size: 40, color: '#ffffff', align: 1, valign: 1 });
+        this.collision.set(20, 20);
         this.bulletCooltime = 0;
+        this.bullets = new BulletBox();
         this.reset();
-        this.bullets = new Iremono();
-        this.bullets.child.drawlayer = 'effect';
-        this.bullets.child.addCreator(Tofu.name, () => new Tofu(), (bullet) => {
-            bullet.pos.width = 4;
-            bullet.pos.height = 4;
-            bullet.pos.align = 1;
-            bullet.pos.valign = 1;
-            bullet.brush.color = '#ffff00';
-        });
     }
     reset() {
         this.isExist = true;
@@ -787,45 +806,43 @@ class Player extends Mono {
             this.bulletCooltime = playerBulletRate;
             let lr = -1;
             for (let i = 0; i < 2; i++) {
-                const bullet = this.bullets.child.get(Tofu.name);
-                bullet.pos.x = this.pos.x + (10 * lr);
-                bullet.pos.y = this.pos.y;
-                bullet.pos.vy = -400;
+                this.bullets.firing(this.pos.x + (10 * lr), this.pos.y, 0, -400);
                 lr *= -1;
             }
         } else {
             this.bulletCooltime -= 1 * game.delta;
         }
     }
+    knockdown() {
+        this.isExist = false;
+    }
+    postUpdate() {
+        const halfX = this.pos.width * 0.5;
+        const halfY = this.pos.height * 0.5;
+        this.pos.x = Util.clamp(halfX, this.pos.x, game.width - halfX);
+        this.pos.y = Util.clamp(halfY, this.pos.y, game.height - halfY);
+    }
 }
 class Baddie extends Mono {
     constructor(char) {
-        super(new Moji(char, 0, 0, { size: 40, color: '#000000', align: 1, valign: 1 }), new Unit())
-        this.bullets;
+        super(new Moji(), new Collision(), new Unit())
+        this.moji.set(char, 0, 0, { size: 40, color: '#000000', align: 1, valign: 1 });
+        this.collision.set(40, 40);
         this.bulletCooltime = 0;
+        this.bullets;
     }
     static createBaddies() {
-        const baddies = new Iremono();
+        const baddies = new Mono(new Child());
         for (const bad of Object.values(gameData.baddies)) {
-            baddies.child.addCreator(bad.name, () => new Baddie(Util.parseUnicode(bad.char)), (baddie) => {
+            baddies.child.addCreator(bad.name, () => {
+                const baddie = new Baddie(Util.parseUnicode(bad.char));
                 baddie.unit.hp = bad.hp;
                 baddie.unit.point = bad.point;
                 baddie.bulletCooltime = 0;
+                return baddie;
             });
         }
         return baddies;
-    }
-    static createBullets() {
-        const bullets = new Iremono();
-        bullets.child.drawlayer = 'effect';
-        bullets.child.addCreator(Tofu.name, () => new Tofu(), (bullet) => {
-            bullet.pos.width = 4;
-            bullet.pos.height = 4;
-            bullet.pos.align = 1;
-            bullet.pos.valign = 1;
-            bullet.brush.color = '#ffffff';
-        });
-        return bullets;
     }
     update() {
         this.shot();
@@ -833,25 +850,40 @@ class Baddie extends Mono {
     shot() {
         if (this.bulletCooltime <= 0) {
             this.bulletCooltime = baddiesBulletRate;
-            let bullet = this.bullets.child.get(Tofu.name);
-            bullet.pos.x = this.pos.x;
-            bullet.pos.y = this.pos.y;
-            bullet.pos.vx = 0;
-            bullet.pos.vy = baddiesBulletSpeed;
+            this.bullets.firing(this.pos.x, this.pos.y, 0, baddiesBulletSpeed);
             let d = Util.xyToDeg(0, baddiesBulletSpeed);
-            bullet = this.bullets.child.get(Tofu.name);
-            bullet.pos.x = this.pos.x;
-            bullet.pos.y = this.pos.y;
-            bullet.pos.vx = Util.degToX(d + 10 % 360) * baddiesBulletSpeed;
-            bullet.pos.vy = Util.degToY(d + 10 % 360) * baddiesBulletSpeed;
-            bullet = this.bullets.child.get(Tofu.name);
-            bullet.pos.x = this.pos.x;
-            bullet.pos.y = this.pos.y;
-            bullet.pos.vx = Util.degToX(d - 10 % 360) * baddiesBulletSpeed;
-            bullet.pos.vy = Util.degToY(d - 10 % 360) * baddiesBulletSpeed;
+            this.bullets.firing(this.pos.x, this.pos.y, Util.degToX(d + 10 % 360) * baddiesBulletSpeed, Util.degToY(d + 10 % 360) * baddiesBulletSpeed);
+            this.bullets.firing(this.pos.x, this.pos.y, Util.degToX(d - 10 % 360) * baddiesBulletSpeed, Util.degToY(d - 10 % 360) * baddiesBulletSpeed);
         } else {
             this.bulletCooltime -= 1 * game.delta;
         }
+    }
+    knockdown() {
+        this.putback();
+    }
+}
+class BulletBox extends Mono {
+    constructor() {
+        super(new Child());
+        this.child.drawlayer = 'effect';
+        this.child.addCreator('bullet', () => {
+            const bullet = new Mono(new Collision(), new Brush());
+            bullet.pos.align = 1;
+            bullet.pos.valign = 1;
+            return bullet;
+        });
+    }
+    firing(x, y, vx, vy, color) {
+        const bullet = this.child.get('bullet');
+        bullet.pos.width = 4;
+        bullet.pos.height = 4;
+        bullet.pos.x = x;
+        bullet.pos.y = y;
+        bullet.pos.vx = vx;
+        bullet.pos.vy = vy;
+        bullet.collision.set(4, 4);
+        bullet.brush.color = color;
+        return bullet;
     }
 }
 class ScenePause extends Mono {
@@ -859,7 +891,7 @@ class ScenePause extends Mono {
         super(new Scene());
         const titleSize = game.width / 11;
         let titleY = game.height * 0.25;
-        this.child.add(new Bun(text.pause, game.width * 0.5, titleY, { size: titleSize, color: '#EDD425', font: 'Kaisei Decol', align: 1, valign: 1 }));
+        this.child.add(new label(text.pause, game.width * 0.5, titleY, { size: titleSize, color: '#EDD425', font: 'Kaisei Decol', align: 1, valign: 1 }));
         this.child.add(this.menu = new Menu(game.width * 0.5, game.height * 0.5, titleSize, 1));
         this.menu.add(text.resume);
         this.menu.add(text.restart);
@@ -879,13 +911,12 @@ class ScenePause extends Mono {
                 game.popScene();
                 break;
             case text.restart:
-
-                break;
+                game.popScene();
+                return text.restart;
             case text.returntitle:
-                this.scene.result = 0;
                 game.popScene();
                 game.popScene();
-                break;
+                return text.returntitle;
         }
     }
 }
@@ -894,7 +925,7 @@ class SceneGameOver extends Mono {
         super(new Scene());
         const titleSize = game.width / 11;
         let titleY = game.height * 0.25;
-        this.child.add(new Bun(text.gameover, game.width * 0.5, titleY, { size: titleSize, color: '#EDD425', font: 'Kaisei Decol', align: 1, valign: 1 }));
+        this.child.add(new label(text.gameover, game.width * 0.5, titleY, { size: titleSize, color: '#EDD425', font: 'Kaisei Decol', align: 1, valign: 1 }));
         this.child.add(this.menu = new Menu(game.width * 0.5, game.height * 0.5, titleSize, 1));
         this.menu.isEnableCancel = false;
         this.menu.add(text.continue);
