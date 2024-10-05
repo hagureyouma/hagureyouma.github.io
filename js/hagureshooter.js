@@ -242,7 +242,7 @@ class Generator {
         if (!this.state) return;
         this.state?.next(2)
         let result;
-        while (result) {
+        while (result!==undefined) {
             result = this.state?.next(result).value;
         }
     }
@@ -507,11 +507,10 @@ class Menu extends Mono {
                 continue;
             }
             if (game.input.IsPress('z')) {
-                return;
+                return this.index;
             }
             if (this.isEnableCancel && game.input.IsPress('x')) {
-                this.index = -1;
-                return;
+                return -1;
             }
         }
     }
@@ -611,13 +610,10 @@ class SceneTitle extends Mono {
     }
     *stateDefault() {
         while (true) {
-            yield* this.titleMenu.stateSelect();
-            switch (this.titleMenu.current()) {
+            switch (yield* this.titleMenu.stateSelect()) {
                 case text.start:
                     this.isExist = false;
-                    const play = new ScenePlay();
-                    game.pushScene(play);
-                    yield* play.stateDefault();
+                    yield* new ScenePlay().stateDefault();
                     this.isExist = true;
                     break;
             }
@@ -681,33 +677,28 @@ class ScenePlay extends Mono {
         })
     }
     *stateDefault() {
-        while (true) {
+        game.pushScene(this);
+        while (function*() {
             yield undefined;
             if (this.player.unit.isDead) {
-                const gameover = new SceneGameOver();
-                game.pushScene(gameover);
-                yield* gameover.stateDefault();
+                if (yield * new SceneGameOver().stateDefault() === text.returntitle) return false;
                 this.resetGame();
-                if (gameover.scene.result === 0) {
-                    return;
-                }
             }
             if (game.input.IsPress('x')) {
                 this.isActive = false;
-                const pause = new ScenePause();
-                game.pushScene(pause);
-                switch (yield* pause.stateDefault()) {
+                switch (yield * new ScenePause().stateDefault()) {
                     case text.restart:
                         this.resetGame();
                         break;
                     case text.returntitle:
-                        this.resetGame();
-                        return;
+                        return false;
                 }
                 this.isActive = true;
             }
             this.player.receiveInput();
-        }
+            return true;
+        }) { }
+        game.popScene();
     }
     *stageRunner(stage) {
         const temp = [...stage].sort((a, b) => a.time < b.time);
@@ -902,21 +893,21 @@ class ScenePause extends Mono {
         ctx.fillRect(0, 0, game.width, game.height);
     }
     *stateDefault() {
+        game.pushScene(this);
         game.isPauseBlur = true;
-        yield* this.menu.stateSelect();
+        const result = yield* this.menu.stateSelect();
         game.isPauseBlur = false;
-        switch (this.menu.current()) {
+        switch (result) {
             case text.resume:
             case Menu.cancel:
-                game.popScene();
                 break;
             case text.restart:
                 game.popScene();
-                return text.restart;
+                return result;
             case text.returntitle:
                 game.popScene();
                 game.popScene();
-                return text.returntitle;
+                return result;
         }
     }
 }
@@ -932,17 +923,14 @@ class SceneGameOver extends Mono {
         this.menu.add(text.returntitle);
     }
     *stateDefault() {
-        yield* this.menu.stateSelect();
-        switch (this.menu.current()) {
-            case text.continue:
-                game.popScene();
-                break;
+        game.pushScene(this);
+        switch (yield* this.menu.stateSelect()) {
             case text.returntitle:
-                this.scene.result = 0;
                 game.popScene();
                 game.popScene();
-                break;
+                return text.returntitle;
         }
+        game.popScene();
     }
 }
 game.pushScene(new SceneTitle());
