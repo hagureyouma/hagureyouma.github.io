@@ -94,6 +94,10 @@ class Game {
     popScene = () => this.root.child.pop();
     setState = state => this.root.generator.run(state);
     isOutOfRange = (rect) => !this.screenRect.isIntersect(rect);
+    clearBlur(){
+        const blurCtx = this.blur.getContext('2d');
+        blurCtx.clearRect(0, 0, this.width, this.height);
+    }
     get fps() { return Math.floor(1 / Util.average(this.fpsBuffer)) };
 }
 class Input {
@@ -240,11 +244,8 @@ class Generator {
     run = state => this.state = state;
     update() {
         if (!this.state) return;
-        this.state?.next(2)
         let result;
-        while (result!==undefined) {
-            result = this.state?.next(result).value;
-        }
+        while (result = this.state?.next(result).value !== undefined) { }
     }
 }
 function* waitForTime(time) {
@@ -340,7 +341,7 @@ class Child {
     pop = () => this.objs.pop();
     putbackAll() {
         for (const obj of this.objs) {
-            if (!obj.isExist && obj.id < 0) continue;
+            if (!obj.isExist || obj.id < 0) continue;
             obj.putback();
         }
     }
@@ -400,8 +401,8 @@ class Moji {
         pos.align = align;
         pos.valign = valign;
     }
-    get _getText() { return typeof this.text === 'function' ? this.text() : this.text };
-    getWidth = (ctx) => this._getWidth(ctx, this._getText);
+    get getText() { return typeof this.text === 'function' ? this.text() : this.text };
+    getWidth = (ctx) => this._getWidth(ctx, this.getText);
     _getWidth(ctx, text) {
         ctx.font = `${this.weight} ${this.size}px '${this.font}'`;
         ctx.textBaseline = this.baseLine;
@@ -409,7 +410,7 @@ class Moji {
         return tm.width;
     }
     draw(ctx) {
-        const text = this._getText;
+        const text = this.getText;
         const pos = this.owner.pos;
         pos.width = this._getWidth(ctx, text);
         //pos.height = Math.abs(tm.actualBoundingBoxAscent) + Math.abs(tm.actualBoundingBoxDescent);
@@ -489,32 +490,24 @@ class Menu extends Mono {
     }
     *stateSelect(newIndex = this.index) {
         const length = this.child.objs.length - this.indexOffset;
-        this.move(newIndex);
+        function* move(key, direction) {
+            if (!game.input.IsDown(key)) return false;
+            this.moveIndex((this.index + direction) % length);
+            let wait = keyRepeatWait;
+            if (game.input.IsPress(key)) wait = keyRepeatFirstWait;
+            yield* waitForTimeOrFrag(wait, () => game.input.IsUp(key));
+            return true;
+        }
+        this.moveIndex(newIndex);
         while (true) {
             yield undefined;
-            if (game.input.IsDown('up')) {
-                this.move((this.index + (length - 1)) % length);
-                let wait = keyRepeatWait
-                if (game.input.IsPress('up')) wait = keyRepeatFirstWait;
-                yield* waitForTimeOrFrag(wait, () => game.input.IsUp('up'));
-                continue;
-            }
-            if (game.input.IsDown('down')) {
-                this.move((this.index + 1) % length);
-                let wait = keyRepeatWait
-                if (game.input.IsPress('down')) wait = keyRepeatFirstWait;
-                yield* waitForTimeOrFrag(wait, () => game.input.IsUp('down'));
-                continue;
-            }
-            if (game.input.IsPress('z')) {
-                return this.index;
-            }
-            if (this.isEnableCancel && game.input.IsPress('x')) {
-                return -1;
-            }
+            if (game.input.IsPress('z')) return this.child.objs[this.index + this.indexOffset].moji.getText;
+            if (this.isEnableCancel && game.input.IsPress('x')) return '';
+            if (yield* move.bind(this)('up', length - 1)) continue;
+            if (yield* move.bind(this)('down', 1)) continue;
         }
     }
-    move(newIndex) {
+    moveIndex(newIndex) {
         this.child.objs[this.index + this.indexOffset].moji.color = this.color;
         this.index = newIndex;
         const item = this.child.objs[newIndex + this.indexOffset];
@@ -624,12 +617,11 @@ class ScenePlay extends Mono {
     constructor() {
         super(new Generator(), new Scene());
         //プレイヤー
-        this.player = new Player();
+        this.child.add(this.player = new Player());
         this.child.add(this.player.bullets);
-        this.child.add(this.player);
         //敵キャラ
-        this.child.add(this.baddiesbullets = new BulletBox());
-        this.child.add(this.baddies = Baddie.createBaddies());
+        this.child.add(this.baddies = new Baddies());
+        this.child.add(this.baddies.bullets);
         //パーティクル
         this.child.add(this.effect = new Tsubu());
         this.effect.child.drawlayer = 'effect';
@@ -643,7 +635,7 @@ class ScenePlay extends Mono {
         this.child.add(this.debug = new Watch());
         this.debug.pos.y = 40;
         this.debug.add(() => `ENEMY: ${this.baddies.child.liveCount}`);
-        this.debug.add(() => `ENEMYBULLET: ${this.baddiesbullets.child.liveCount}`);
+        this.debug.add(() => `ENEMYBULLET: ${this.baddies.bullets.child.liveCount}`);
 
         // this.child.add(this.textScore = new Bun(() => `Baddie:${this.baddies.child.liveCount} Bullets:${this.baddiesbullets.child.liveCount}`, { font: 'Impact' }));
         // this.textScore.pos.x = 2;
@@ -667,7 +659,7 @@ class ScenePlay extends Mono {
             }
             this.baddies.child.each((baddie) => _ishit(bullet, baddie));
         });
-        this.baddiesbullets.child.each((bullet) => {
+        this.baddies.bullets.child.each((bullet) => {
             if (game.isOutOfRange(bullet.collision.rect)) {
                 bullet.putback();
                 return;
@@ -678,29 +670,37 @@ class ScenePlay extends Mono {
     }
     *stateDefault() {
         game.pushScene(this);
-        while (function*() {
+        while (true) {
             yield undefined;
             if (this.player.unit.isDead) {
-                if (yield * new SceneGameOver().stateDefault() === text.returntitle) return false;
-                this.resetGame();
+                switch (yield* new SceneGameOver().stateDefault()) {
+                    case text.continue:
+                        this.resetGame();
+                        game.clearBlur();
+                        break;
+                    case text.returntitle:
+                        game.popScene();
+                        return;
+                }
             }
             if (game.input.IsPress('x')) {
                 this.isActive = false;
-                switch (yield * new ScenePause().stateDefault()) {
+                switch (yield* new ScenePause().stateDefault()) {
                     case text.restart:
                         this.resetGame();
+                        game.clearBlur();
+
                         break;
                     case text.returntitle:
-                        return false;
+                        game.popScene();
+                        return;
                 }
                 this.isActive = true;
             }
             this.player.receiveInput();
-            return true;
-        }) { }
-        game.popScene();
+        }
     }
-    *stageRunner(stage) {
+    * stageRunner(stage) {
         const temp = [...stage].sort((a, b) => a.time < b.time);
         let timeCounter = 0;
         for (const d of temp) {
@@ -708,19 +708,19 @@ class ScenePlay extends Mono {
                 timeCounter += game.delta;
                 yield undefined;
             }
-            this.spawnBaddie(d.x, d.y, d.name);
+            this.baddies.spawn(d.x, d.y, d.name);
         }
     }
-    *stageRunner2() {
+    * stageRunner2() {
         let timeCounter = 0;
         while (true) {
-            if (this.baddies.child.liveCount >= 0) {
+            if (this.baddies.child.liveCount >= 1) {
                 yield undefined;
                 continue;
             }
             if (timeCounter < 0) {
                 timeCounter = 0;
-                this.spawnBaddie(Util.random(30, game.width - 30), Util.random(30, game.height * 0.5), 'crow');
+                this.baddies.spawn(Util.random(30, game.width - 30), Util.random(30, game.height * 0.5), 'crow');
             } else {
                 timeCounter -= 1 * game.delta;
             }
@@ -732,13 +732,8 @@ class ScenePlay extends Mono {
         this.player.reset();
         this.player.bullets.child.putbackAll();
         this.baddies.child.putbackAll();
-        this.baddiesbullets.child.putbackAll();
-    }
-    spawnBaddie(x, y, name) {
-        const bad = this.baddies.child.get(name);
-        bad.pos.x = x;
-        bad.pos.y = y;
-        bad.bullets = this.baddiesbullets;
+        this.baddies.bullets.child.putbackAll();
+        this.effect.child.putbackAll();
     }
 }
 class Unit {
@@ -767,7 +762,7 @@ class Player extends Mono {
         this.pos.x = game.width * 0.5;
         this.pos.y = game.height * 40
         this.unit.hp = 1;
-        this.bulletCooltime = 0;
+        this.bulletCooltime = 0.1;
     }
     receiveInput() {
         this.pos.vx = 0;
@@ -814,26 +809,35 @@ class Player extends Mono {
         this.pos.y = Util.clamp(halfY, this.pos.y, game.height - halfY);
     }
 }
+class Baddies extends Mono {
+    constructor() {
+        super(new Child());
+        this.bullets = new BulletBox();
+        for (const bad of Object.values(gameData.baddies)) {
+            this.child.addCreator(bad.name, () => {
+                const baddie = new Baddie(Util.parseUnicode(bad.char));
+                baddie.bullets = this.bullets;
+                return baddie;
+            });
+        }
+    }
+    spawn(x, y, name) {
+        const data = gameData.baddies[name];
+        const baddie = this.child.get(name);
+        baddie.pos.x = x;
+        baddie.pos.y = y;
+        baddie.unit.hp = data.hp;
+        baddie.unit.point = data.point;
+        baddie.bulletCooltime = 0.1;
+    }
+}
 class Baddie extends Mono {
     constructor(char) {
-        super(new Moji(), new Collision(), new Unit())
+        super(new Moji(), new Collision(), new Unit());
         this.moji.set(char, 0, 0, { size: 40, color: '#000000', align: 1, valign: 1 });
         this.collision.set(40, 40);
         this.bulletCooltime = 0;
         this.bullets;
-    }
-    static createBaddies() {
-        const baddies = new Mono(new Child());
-        for (const bad of Object.values(gameData.baddies)) {
-            baddies.child.addCreator(bad.name, () => {
-                const baddie = new Baddie(Util.parseUnicode(bad.char));
-                baddie.unit.hp = bad.hp;
-                baddie.unit.point = bad.point;
-                baddie.bulletCooltime = 0;
-                return baddie;
-            });
-        }
-        return baddies;
     }
     update() {
         this.shot();
@@ -897,18 +901,8 @@ class ScenePause extends Mono {
         game.isPauseBlur = true;
         const result = yield* this.menu.stateSelect();
         game.isPauseBlur = false;
-        switch (result) {
-            case text.resume:
-            case Menu.cancel:
-                break;
-            case text.restart:
-                game.popScene();
-                return result;
-            case text.returntitle:
-                game.popScene();
-                game.popScene();
-                return result;
-        }
+        game.popScene();
+        return result;
     }
 }
 class SceneGameOver extends Mono {
@@ -924,13 +918,9 @@ class SceneGameOver extends Mono {
     }
     *stateDefault() {
         game.pushScene(this);
-        switch (yield* this.menu.stateSelect()) {
-            case text.returntitle:
-                game.popScene();
-                game.popScene();
-                return text.returntitle;
-        }
+        const result = yield* this.menu.stateSelect();
         game.popScene();
+        return result;
     }
 }
 game.pushScene(new SceneTitle());
