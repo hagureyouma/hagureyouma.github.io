@@ -32,6 +32,8 @@ const LAYER_NAME = ['bg', 'main', 'effect', 'ui'];
 
 let text = {
     title: 'シューティングゲーム', title2: 'のようななにか', pressanykey: 'Xキーを押してね',
+    explanation1: '↑↓←→:選択、移動',
+    explanation2: 'Z:決定、攻撃　X:取消、中断',
     start: 'スタート', highscore: 'ハイスコア', credit: 'クレジット',
     pause: 'ポーズ', resume: 'ゲームを続ける', restart: '最初からやり直す', returntitle: 'タイトルに戻る',
     gameover: 'ゲームオーバー', continue: 'コンティニュー'
@@ -40,7 +42,7 @@ const KEY_REPEAT_WAIT_FIRST = 0.25;
 const KEY_REPEAT_WAIT = 0.125;
 
 const PLAYER_MOVE_SPEED = 600;
-const PLAYER_BULLET_SPEED = 150;
+const PLAYER_BULLET_SPEED = 400;
 const PLAYER_FIRELATE = 1 / 20;
 const BADDIES_BULLET_SPEED = 150;
 const BADDIE_FIRELATE = 1 / 0.5;
@@ -476,9 +478,9 @@ class Moji {
         ctx.font = `${this.weight} ${this.size}px '${this.font}'`;
         ctx.textBaseline = this.baseLine;
         ctx.fillStyle = this.owner.color.value;
-        const x=this.owner.pos.getScreenX();
-        const y=this.owner.pos.getScreenY();
-        ctx.fillText(this.getText,x ,y );
+        const x = this.owner.pos.getScreenX();
+        const y = this.owner.pos.getScreenY();
+        ctx.fillText(this.getText, x, y);
     }
 }
 class label extends Mono {
@@ -604,16 +606,18 @@ game.create = () => {
 export const gameData = {};
 {
     class BaddieData {
-        constructor(name, char, hp, point) {
+        constructor(name, char, size, hp, point) {
             this.name = name;
             this.char = char;
+            this.size = size;
             this.hp = hp;
             this.point = point;
         }
     }
     gameData.baddies = {};
-    gameData.baddies['obake'] = new BaddieData('obake', EMOJI.GHOST, 5, 200);
-    gameData.baddies['crow'] = new BaddieData('crow', EMOJI.CROW, 5, 100);
+    gameData.baddies['obake'] = new BaddieData('obake', EMOJI.GHOST, 40, 5, 200);
+    gameData.baddies['crow'] = new BaddieData('crow', EMOJI.CROW, 40, 5, 100);
+    gameData.baddies['greatcrow'] = new BaddieData('crow', EMOJI.CROW, 160, 5, 100);
 
     class SpawnData {
         constructor(time, x, y, name) {
@@ -631,10 +635,12 @@ export const gameData = {};
     // stage1.push(new SpawnData(3, 150, 50, 'obake'));
     // stage1.push(new SpawnData(4, 200, 50, 'obake'));
 }
-export const shared = {};
-{
-    shared.score = 0;
-}
+export const shared = {
+    time: 0,
+    score: 0,
+    ko: 0,
+};
+
 class Watch extends Mono {
     constructor() {
         super(new Pos(), new Child());
@@ -661,7 +667,8 @@ class SceneTitle extends Mono {
         this.titleMenu.add(text.highscore);
         this.titleMenu.add(text.credit);
         //操作説明
-        this.child.add(new label(text.title, game.width * 0.5, game.height - 20, { color: COLOR.WHITE, font: 'Kaisei Decol', align: 1, valign: 1 }));
+        this.child.add(new label(text.explanation1, game.width * 0.5, game.height - (TEXT_SIZE.NORMAL * 2.5), { color: COLOR.WHITE, font: 'Kaisei Decol', align: 1, valign: 1 }));
+        this.child.add(new label(text.explanation2, game.width * 0.5, game.height - TEXT_SIZE.NORMAL, { color: COLOR.WHITE, font: 'Kaisei Decol', align: 1, valign: 1 }));
         game.setState(this.stateDefault());
     }
     *stateDefault() {
@@ -691,9 +698,11 @@ class ScenePlay extends Mono {
         //UI
         this.child.add(this.ui = new Mono(new Child()));
         this.ui.child.drawlayer = 'ui';
-        this.ui.child.add(this.textScore = new label(() => `SCORE ${shared.score}`, 2, 2, { font: 'Impact' }));
+        this.ui.child.add(this.textScore = new label(() => `SCORE ${shared.score} KO ${shared.ko}`, 2, 2, { font: 'Impact' }));
         this.ui.child.add(this.fpsView = new label(() => `FPS: ${game.fps}`, game.width - 2, 2, { font: 'Impact' }));
         this.fpsView.pos.align = 2;
+        this.ui.child.add(this.telop = new label());
+        this.telop.isExist;
 
         // this.child.add(this.debug = new Watch());
         // this.debug.pos.y = 40;
@@ -706,6 +715,12 @@ class ScenePlay extends Mono {
 
         // this.fiber.add(this.stageRunner(con.stages[0]));        
         this.state.run(this.stageRunner2());
+    }
+    showTelop(text) {
+        this.telop.set(text, game.width * 0.5, game.height * 0.5, { size: TEXT_SIZE.MEDIUM, color: COLOR.YELLOW, font: 'Kaisei Decol', align: 1, valign: 1 })
+    }
+    hideTelop() {
+        this.telop.isExist;
     }
     postUpdate() {
         const _ishit = (bullet, target) => {
@@ -731,6 +746,7 @@ class ScenePlay extends Mono {
             if (this.player.unit.isDead) return;
             _ishit(bullet, this.player);
         })
+        shared.time += game.delta;
     }
     *stateDefault() {
         game.pushScene(this);
@@ -753,7 +769,6 @@ class ScenePlay extends Mono {
                     case text.restart:
                         this.resetGame();
                         game.clearBlur();
-
                         break;
                     case text.returntitle:
                         game.popScene();
@@ -776,24 +791,23 @@ class ScenePlay extends Mono {
         }
     }
     * stageRunner2() {
-        let wait = 1;
-        let timeCounter = wait;
-        while (true) {
-            if (this.baddies.child.liveCount >= 50) {
+        while (shared.time <= 5) {
+            if (this.baddies.child.liveCount >= 10) {
                 yield undefined;
                 continue;
             }
-            if (timeCounter < 0) {
-                timeCounter = wait;
-                this.baddies.spawn(Util.random(30, game.width - 30), Util.random(30, game.height * 0.5), 'crow');
-            } else {
-                timeCounter -= 1 * game.delta;
-            }
-            yield undefined;
+            yield* waitForTime(1);
+            this.baddies.spawn(Util.random(30, game.width - 30), Util.random(30, game.height * 0.5), 'crow');
         }
+        this.showTelop('!WARNING!');
+        yield* waitForTime(2);
+        this.hideTelop();
+        this.baddies.spawn(game.width * 0.5, game.height * 0.2, 'greatcrow');
     }
     resetGame() {
+        shared.time = 0;
         shared.score = 0;
+        shared.ko = 0;
         this.player.reset();
         this.player.bullets.child.putbackAll();
         this.baddies.child.putbackAll();
@@ -850,7 +864,7 @@ class Player extends Mono {
             this.bulletCooltime = PLAYER_FIRELATE;
             let lr = -1;
             for (let i = 0; i < 2; i++) {
-                this.bullets.firing(this.pos.x + (10 * lr), this.pos.y, 0, -400, COLOR.YELLOW);
+                this.bullets.firing(this.pos.x + (10 * lr), this.pos.y, 0, -PLAYER_BULLET_SPEED, COLOR.YELLOW);
                 lr *= -1;
             }
         } else {
@@ -924,6 +938,7 @@ class Baddie extends Mono {
         ctx.fillRect(x + 31, y + 3, 10, 10);
     }
     knockdown() {
+        shared.ko++;
         this.putback();
     }
 }
