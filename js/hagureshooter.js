@@ -41,7 +41,7 @@ let text = {
 const KEY_REPEAT_WAIT_FIRST = 0.25;
 const KEY_REPEAT_WAIT = 0.125;
 
-const PLAYER_MOVE_SPEED = 600;
+const PLAYER_MOVE_SPEED = 300;
 const PLAYER_BULLET_SPEED = 400;
 const PLAYER_FIRELATE = 1 / 20;
 const BADDIES_BULLET_SPEED = 150;
@@ -81,13 +81,14 @@ class Game {
     }
     get width() { return this.screenRect.width };
     get height() { return this.screenRect.height };
-    create() { }
-    start() {
-        //todo:preload?
-        this.input.init();
-        this.create();
-        this.time = performance.now();
-        this.mainloop();
+    start(create) {
+        addEventListener('load', () => {
+            //todo:preload?
+            this.input.init();
+            create?.();
+            this.time = performance.now();
+            this.mainloop();
+        });
     }
     mainloop() {
         const now = performance.now();
@@ -98,9 +99,7 @@ class Game {
         this.input.update();
         this.root.baseUpdate();
         const layers = Object.values(this.layers).slice(1);
-        for (const layer of layers) {
-            layer.getContext('2d').clearRect(0, 0, this.width, this.height);
-        }
+        for (const layer of layers) layer.getContext('2d').clearRect(0, 0, this.width, this.height);
         const ctx = this.layers['effect'].getContext('2d');
         //ctx.globalCompositeOperation = 'lighter';
         ctx.drawImage(this.blur, 0, 0);
@@ -227,9 +226,7 @@ class Mono {
         this.mixs = [];
         for (const arg of args) {
             if (Array.isArray(arg)) {
-                for (const mix of arg) {
-                    this.addMix(mix);
-                }
+                for (const mix of arg) this.addMix(mix);
             } else {
                 this.addMix(arg);
             }
@@ -244,16 +241,12 @@ class Mono {
         return this;
     }
     resetMix() {
-        for (const mix of this.mixs) {
-            mix.reset();
-        }
+        for (const mix of this.mixs) mix.reset();
     }
     baseUpdate() {
         if (!this.isExist || !this.isActive) return;
         this.update();
-        for (const mix of this.mixs) {
-            mix.update?.();
-        }
+        for (const mix of this.mixs) mix.update?.();
         this.postUpdate();
     }
     update() { }
@@ -261,22 +254,23 @@ class Mono {
     baseDraw(ctx) {
         if (!this.isExist) return;
         this.draw(ctx);
-        for (const mix of this.mixs) {
-            mix.draw?.(ctx);
-        }
+        for (const mix of this.mixs) mix.draw?.(ctx);
     }
     draw() { };
 }
 class State {
     constructor() {
-        this.state;
+        this.generator;
     }
-    reset = () => this.state = undefined;
-    run = state => this.state = state;
+    reset = () => this.generator = undefined;
+    run = state => this.generator = state;
     update() {
-        if (!this.state) return;
         let result;
-        while (result = this.state?.next(result).value !== undefined) { }
+        while (this.generator) {
+            result = this.generator?.next(result);
+            if (result.done) this.reset();
+            if (result.value === undefined) break;
+        }
     }
 }
 function* waitForTime(time) {
@@ -285,11 +279,11 @@ function* waitForTime(time) {
         time -= game.delta;
         yield undefined;
     }
+    return true;
 }
 function* waitForFrag(func) {
-    while (!func()) {
-        yield undefined;
-    }
+    while (!func()) yield undefined;
+    return true;
 }
 function* waitForTimeOrFrag(time, func) {
     time -= game.delta;
@@ -297,6 +291,7 @@ function* waitForTimeOrFrag(time, func) {
         time -= game.delta;
         yield undefined;
     }
+    return true;
 }
 class Pos {
     constructor() {
@@ -328,7 +323,7 @@ class Pos {
 class Collision {
     constructor() {
         this._rect = new Rect();
-        this.isVisible = true;
+        this.isVisible = false;
         return [new Pos(), this];
     }
     reset = () => this.set(0, 0);
@@ -386,15 +381,11 @@ class Child {
         }
     }
     update() {
-        for (const obj of this.objs) {
-            obj.baseUpdate();
-        }
+        for (const obj of this.objs) obj.baseUpdate();
     }
     draw(ctx) {
         let currentCtx = this.drawlayer !== '' ? game.layers[this.drawlayer].getContext('2d') : ctx;
-        for (const obj of this.objs) {
-            obj.baseDraw(currentCtx);
-        }
+        for (const obj of this.objs) obj.baseDraw(currentCtx);
     }
     each(func) {
         for (const obj of this.objs) {
@@ -432,16 +423,36 @@ class Color {
         this.baseColor = '';
         this.func = undefined;
     }
+    restore() {
+        this.value = this.baseColor;
+        this.func = undefined;
+    }
     update = () => this.func?.();
     flash(color) {
-        if (this.func) this.value = this.baseColor;
+        if (this.func) this.restore();
         this.baseColor = this.value;
         this.value = color;
-        let timer = 0.03;
+        let timer = 0.02;
         this.func = () => {
             if (timer <= 0) {
-                this.value = this.baseColor;
-                this.func = undefined;
+                this.restore();
+                return;
+            }
+            timer -= game.delta;
+        }
+    }
+    blink(interval) {
+        if (interval <= 0) {
+            this.restore();
+            return;
+        }
+        if (this.func) this.restore();
+        this.baseColor = this.value;
+        let timer = interval;
+        this.func = () => {
+            if (timer <= 0) {
+                timer = interval;
+                this.value = this.value === this.baseColor ? '#00000000' : this.baseColor;
                 return;
             }
             timer -= game.delta;
@@ -451,14 +462,14 @@ class Color {
 class Moji {
     constructor() {
         this.text = '';
-        this.weight = 0;
-        this.size = 0;
-        this.font = 0;
+        this.weight = 'normal';
+        this.size = TEXT_SIZE.NORMAL;
+        this.font = 'FontAwesome';
         this.baseLine = 'top';
         return [new Pos(), new Color(), this];
     }
     reset() { }
-    set(text, x, y, { size = TEXT_SIZE.NORMAL, color = COLOR.WHITE, font = 'FontAwesome', weight = 'normal', align = 0, valign = 0 } = {}) {
+    set(text, { x = this.owner.pos.x, y = this.owner.pos.y, size = this.size, color = this.owner.color.value, font = this.font, weight = this.weight, align = this.owner.pos.align, valign = this.owner.pos.valign } = {}) {
         this.text = text;
         this.weight = weight;
         this.size = size;
@@ -486,7 +497,7 @@ class Moji {
 class label extends Mono {
     constructor(text, x, y, { size = TEXT_SIZE.NORMAL, color = COLOR.WHITE, font = 'FontAwesome', weight = 'normal', align = 0, valign = 0 } = {}) {
         super(new Moji());
-        this.moji.set(text, x, y, { size, color, font, weight, align, valign });
+        this.moji.set(text, { x, y, size, color, font, weight, align, valign });
     }
 }
 class Brush {
@@ -560,20 +571,17 @@ class Menu extends Mono {
     *stateSelect(newIndex = this.index) {
         const length = this.child.objs.length - this.indexOffset;
         function* move(key, direction) {
-            if (!game.input.IsDown(key)) return false;
+            if (!game.input.IsDown(key)) return;
             this.moveIndex((this.index + direction) % length);
-            let wait = KEY_REPEAT_WAIT;
-            if (game.input.IsPress(key)) wait = KEY_REPEAT_WAIT_FIRST;
-            yield* waitForTimeOrFrag(wait, () => game.input.IsUp(key));
-            return true;
+            yield* waitForTimeOrFrag(game.input.IsPress(key) ? KEY_REPEAT_WAIT_FIRST : KEY_REPEAT_WAIT, () => game.input.IsUp(key) || game.input.IsPress('z') || (this.isEnableCancel && game.input.IsPress('x')));
         }
         this.moveIndex(newIndex);
         while (true) {
             yield undefined;
+            yield* move.bind(this)('up', length - 1);
+            yield* move.bind(this)('down', 1);
             if (game.input.IsPress('z')) return this.child.objs[this.index + this.indexOffset].moji.getText;
-            if (this.isEnableCancel && game.input.IsPress('x')) return '';
-            if (yield* move.bind(this)('up', length - 1)) continue;
-            if (yield* move.bind(this)('down', 1)) continue;
+            if (this.isEnableCancel && game.input.IsPress('x')) return;
         }
     }
     moveIndex(newIndex) {
@@ -591,56 +599,51 @@ class Menu extends Mono {
     current = () => this.index === -1 ? Menu.cancel : this.child.objs[this.index + this.indexOffset].moji.text;
     static get cancel() { return 'cancel' };
 }
-export const game = new Game();
-game.create = () => {
-    game.input.keybind('z', 'z', { button: 1 });
-    game.input.keybind('x', 'x', { button: 0 });
-
-    const ctx = game.layers['bg'].getContext('2d');
-    const grad = ctx.createLinearGradient(0, 0, 0, game.height);
-    grad.addColorStop(0, "#611180");
-    grad.addColorStop(1, "#253FB0");
-    ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, game.width, game.height);
+class BaddieData {
+    constructor(name, char, size, hp, point) {
+        this.name = name;
+        this.char = char;
+        this.size = size;
+        this.hp = hp;
+        this.point = point;
+    }
+}
+export const gameData = {
+    baddies: {
+        obake: new BaddieData('obake', EMOJI.GHOST, 40, 5, 200),
+        crow: new BaddieData('crow', EMOJI.CROW, 40, 5, 100),
+        greatcrow: new BaddieData('greatcrow', EMOJI.CROW, 120, 100, 100)
+    }
 };
-export const gameData = {};
-{
-    class BaddieData {
-        constructor(name, char, size, hp, point) {
-            this.name = name;
-            this.char = char;
-            this.size = size;
-            this.hp = hp;
-            this.point = point;
-        }
+// class SpawnData {
+//     constructor(time, x, y, name) {
+//         this.time = time;
+//         this.x = x;
+//         this.y = y;
+//         this.name = name;
+//     }
+// }
+// gameData.stages = [];
+// const stage1 = [];
+// gameData.stages.push(stage1);
+// stage1.push(new SpawnData(2, 160, 50, 'obake'));
+// stage1.push(new SpawnData(2, 100, 50, 'obake'));
+// stage1.push(new SpawnData(3, 150, 50, 'obake'));
+// stage1.push(new SpawnData(4, 200, 50, 'obake'));
+class scoreData {
+    constructor(from) {
+        this.stage = from?.stage || 0;
+        this.time = from?.time || 0;
+        this.score = from?.score || 0;
+        this.ko = from?.ko || 0;
     }
-    gameData.baddies = {};
-    gameData.baddies['obake'] = new BaddieData('obake', EMOJI.GHOST, 40, 5, 200);
-    gameData.baddies['crow'] = new BaddieData('crow', EMOJI.CROW, 40, 5, 100);
-    gameData.baddies['greatcrow'] = new BaddieData('crow', EMOJI.CROW, 160, 5, 100);
-
-    class SpawnData {
-        constructor(time, x, y, name) {
-            this.time = time;
-            this.x = x;
-            this.y = y;
-            this.name = name;
-        }
-    }
-    gameData.stages = [];
-    const stage1 = [];
-    gameData.stages.push(stage1);
-    stage1.push(new SpawnData(2, 160, 50, 'obake'));
-    // stage1.push(new SpawnData(2, 100, 50, 'obake'));
-    // stage1.push(new SpawnData(3, 150, 50, 'obake'));
-    // stage1.push(new SpawnData(4, 200, 50, 'obake'));
 }
 export const shared = {
-    time: 0,
-    score: 0,
-    ko: 0,
+    playData: {
+        total: new scoreData(),
+        before: new scoreData()
+    }
 };
-
 class Watch extends Mono {
     constructor() {
         super(new Pos(), new Child());
@@ -649,7 +652,7 @@ class Watch extends Mono {
     }
     add(watch) {
         const l = this.child.get('label');
-        l.moji.set(watch, 2, this.pos.y + ((this.child.objs.length - 1) * l.moji.size * 1.5), { font: 'Impact' })
+        l.moji.set(watch, { x: 2, y: this.pos.y + ((this.child.objs.length - 1) * l.moji.size * 1.5), font: 'Impact' })
     }
 }
 class SceneTitle extends Mono {
@@ -686,8 +689,10 @@ class SceneTitle extends Mono {
 class ScenePlay extends Mono {
     constructor() {
         super(new State(), new Child());
+        this.elaps = 0;
         //プレイヤー
-        this.child.add(this.player = new Player());
+        this.child.add(this.playerside = new Mono(new Child()));
+        this.playerside.child.add(this.player = new Player());
         this.child.add(this.player.bullets);
         //敵キャラ
         this.child.add(this.baddies = new Baddies());
@@ -698,12 +703,12 @@ class ScenePlay extends Mono {
         //UI
         this.child.add(this.ui = new Mono(new Child()));
         this.ui.child.drawlayer = 'ui';
-        this.ui.child.add(this.textScore = new label(() => `SCORE ${shared.score} KO ${shared.ko}`, 2, 2, { font: 'Impact' }));
+        this.ui.child.add(this.textScore = new label(() => `SCORE ${shared.playData.total.score} KO ${shared.playData.total.ko}`, 2, 2, { font: 'Impact' }));
         this.ui.child.add(this.fpsView = new label(() => `FPS: ${game.fps}`, game.width - 2, 2, { font: 'Impact' }));
         this.fpsView.pos.align = 2;
-        this.ui.child.add(this.telop = new label());
-        this.telop.isExist;
-
+        this.telopText = '';
+        this.ui.child.add(this.telop = new label('', game.width * 0.5, game.height * 0.5, { size: TEXT_SIZE.MEDIUM, color: COLOR.YELLOW, font: 'Kaisei Decol', align: 1, valign: 1 }));
+        this.telop.isExist = false;
         // this.child.add(this.debug = new Watch());
         // this.debug.pos.y = 40;
         // this.debug.add(() => `ENEMY: ${this.baddies.child.liveCount}`);
@@ -713,50 +718,51 @@ class ScenePlay extends Mono {
         // this.textScore.pos.x = 2;
         // this.textScore.pos.y = 48;
 
-        // this.fiber.add(this.stageRunner(con.stages[0]));        
-        this.state.run(this.stageRunner2());
+        // this.fiber.add(this.stageRunner(con.stages[0]));      
+        this.startGame();
     }
-    showTelop(text) {
-        this.telop.set(text, game.width * 0.5, game.height * 0.5, { size: TEXT_SIZE.MEDIUM, color: COLOR.YELLOW, font: 'Kaisei Decol', align: 1, valign: 1 })
-    }
-    hideTelop() {
-        this.telop.isExist;
+    get isClear() { return this.state.generator === undefined }
+    get isFailure() { return this.player.unit.isDefeat }
+    *showTelop(text, time, blink = 0) {
+        this.telop.moji.set(text);
+        this.telop.color.blink(blink);
+        this.telop.isExist = true;
+        yield* waitForTime(time);
+        this.telop.isExist = false;
     }
     postUpdate() {
-        const _ishit = (bullet, target) => {
-            if (!bullet.collision.ishit(target)) return;
-            bullet.putback();
-            target.color.flash(COLOR.WHITE);
-            if (!target.unit.hit(1, shared)) return;
-            this.effect.emittCircle(8, 300, 0.5, COLOR.WHITE, target.pos.x, target.pos.y, 0.97)
-            target.knockdown();
+        const _bulletHitcheck = (bullet, targets) => {
+            if (game.isOutOfRange(bullet.collision.rect)) {
+                bullet.putback();
+                return;
+            }
+            targets.child.each((target) => {
+                if (!bullet.collision.ishit(target)) return;
+                bullet.putback();
+                target.color.flash(COLOR.WHITE);
+                shared.playData.total.score += target.unit.point;
+                if (!target.unit.isBanish(1)) return;
+                this.effect.emittCircle(8, 300, 0.5, COLOR.WHITE, target.pos.x, target.pos.y, 0.97)
+                shared.playData.total.ko += target.defeat();
+            })
         }
-        this.player.bullets.child.each((bullet) => {
-            if (game.isOutOfRange(bullet.collision.rect)) {
-                bullet.putback();
-                return;
-            }
-            this.baddies.child.each((baddie) => _ishit(bullet, baddie));
-        });
-        this.baddies.bullets.child.each((bullet) => {
-            if (game.isOutOfRange(bullet.collision.rect)) {
-                bullet.putback();
-                return;
-            }
-            if (this.player.unit.isDead) return;
-            _ishit(bullet, this.player);
-        })
-        shared.time += game.delta;
+        this.player.bullets.child.each((bullet) => _bulletHitcheck(bullet, this.baddies));
+        this.baddies.bullets.child.each((bullet) => _bulletHitcheck(bullet, this.playerside));
+        this.elaps += game.delta;
+        shared.playData.total.time += game.delta;
     }
     *stateDefault() {
         game.pushScene(this);
         while (true) {
             yield undefined;
-            if (this.player.unit.isDead) {
+            if (this.isClear) {
+                this.clearStage();
+                continue;
+            }
+            if (this.isFailure) {
                 switch (yield* new SceneGameOver().stateDefault()) {
                     case text.continue:
-                        this.resetGame();
-                        game.clearBlur();
+                        this.startGame();
                         break;
                     case text.returntitle:
                         game.popScene();
@@ -767,8 +773,7 @@ class ScenePlay extends Mono {
                 this.isActive = false;
                 switch (yield* new ScenePause().stateDefault()) {
                     case text.restart:
-                        this.resetGame();
-                        game.clearBlur();
+                        this.startGame();
                         break;
                     case text.returntitle:
                         game.popScene();
@@ -791,45 +796,66 @@ class ScenePlay extends Mono {
         }
     }
     * stageRunner2() {
-        while (shared.time <= 5) {
-            if (this.baddies.child.liveCount >= 10) {
+        this.elaps = 0;
+        let phaseLength = 5;
+        let maxSpawn = 10;
+        let spawnInterval = 1;
+        while (this.elaps <= phaseLength || this.baddies.child.liveCount > 0) {
+            if (this.baddies.child.liveCount >= maxSpawn || this.elaps > phaseLength) {
                 yield undefined;
                 continue;
             }
-            yield* waitForTime(1);
-            this.baddies.spawn(Util.random(30, game.width - 30), Util.random(30, game.height * 0.5), 'crow');
+            yield* waitForTime(spawnInterval);
+            this.baddies.spawn(Util.random(30, game.width - 30), Util.random(30, game.height * 0.5), 'crow', this);
         }
-        this.showTelop('!WARNING!');
-        yield* waitForTime(2);
-        this.hideTelop();
-        this.baddies.spawn(game.width * 0.5, game.height * 0.2, 'greatcrow');
+        if (this.isFailure) return;
+        yield* this.showTelop('WARNING!', 2, 0.25);
+        const boss = this.baddies.spawn(game.width * 0.5, game.height * 0.2, 'greatcrow');
+        yield* waitForFrag(() => boss.unit.isDefeat);
+        this.player.unit.invincible = true;
+        yield* this.showTelop('束の間の安息を得た', 2);
     }
-    resetGame() {
-        shared.time = 0;
-        shared.score = 0;
-        shared.ko = 0;
+    startGame() {
+        shared.playData.before = new scoreData();
+        this.continueGame();
+    }
+    continueGame() {
+        shared.playData.total = new scoreData(shared.playData.before);
+        this.resetStage();
+    }
+    clearStage() {
+        shared.playData.total.stage++;
+        shared.playData.before = new scoreData(shared.playData.total);
+        this.resetStage();
+    }
+    resetStage() {
         this.player.reset();
         this.player.bullets.child.putbackAll();
         this.baddies.child.putbackAll();
         this.baddies.bullets.child.putbackAll();
         this.effect.child.putbackAll();
+        this.state.run(this.stageRunner2());
+        game.clearBlur();
+        this.telop.isExist = false;
     }
 }
 class Unit {
     constructor() {
         this.hp = 0;
         this.point = 0;
+        this.invincible = false;
     }
     reset() {
         this.hp = 0;
         this.point = 0;
+        this.invincible = false;
     }
-    hit(damage, shared) {
+    isBanish(damage) {
+        if (this.invincible) return false;
         this.hp -= damage;
-        shared.score += this.point;
         return this.hp <= 0;
     }
-    get isDead() { return this.hp <= 0 }
+    get isDefeat() { return this.hp <= 0 }
 }
 class Player extends Mono {
     constructor() {
@@ -841,10 +867,11 @@ class Player extends Mono {
     reset() {
         this.resetMix();
         this.isExist = true;
-        this.moji.set(Util.parseUnicode(EMOJI.CAT), game.width * 0.5, game.height * 40, { size: 40, color: COLOR.BLACK, align: 1, valign: 1 });
-        this.collision.set(this.pos.width * 1, this.pos.height * 1);
+        this.moji.set(Util.parseUnicode(EMOJI.CAT), { x: game.width * 0.5, y: game.height * 40, size: 40, color: COLOR.BLACK, align: 1, valign: 1 });
+        this.collision.set(this.pos.width * 0.25, this.pos.height * 0.25);
+        this.unit.reset();
         this.unit.hp = 1;
-        this.bulletCooltime = 0.1;
+        this.bulletCooltime = 0.2;
     }
     receiveInput() {
         this.pos.vx = 0;
@@ -871,8 +898,9 @@ class Player extends Mono {
             this.bulletCooltime -= 1 * game.delta;
         }
     }
-    knockdown() {
+    defeat() {
         this.isExist = false;
+        return 0;
     }
     postUpdate() {
         const halfX = this.pos.width * 0.5;
@@ -892,40 +920,55 @@ class Baddies extends Mono {
     constructor() {
         super(new Child());
         this.bullets = new BulletBox();
+        this.bulletPattern = {};
+        this.bulletPattern['multiway'] = this._bulletMulitWay;
         for (const bad of Object.values(gameData.baddies)) {
             this.child.addCreator(bad.name, () => {
                 const baddie = new Baddie();
                 baddie.bullets = this.bullets;
+                baddie.shot = this.bulletPattern['multiway'];
                 return baddie;
             });
         }
     }
-    spawn(x, y, name) {
+    spawn(x, y, name, scene) {
         const data = gameData.baddies[name];
         const baddie = this.child.get(name);
-        baddie.moji.set(Util.parseUnicode(data.char), x, y, { size: 40, color: COLOR.BLACK, align: 1, valign: 1 });
+        baddie.moji.set(Util.parseUnicode(data.char), { x: x, y: y, size: data.size, color: COLOR.BLACK, align: 1, valign: 1 });
         baddie.collision.set(baddie.pos.width, baddie.pos.height);
         baddie.unit.hp = data.hp;
         baddie.unit.point = data.point;
+        baddie.scene = scene;
         baddie.bulletCooltime = 0.1;
+        return baddie;
+    }
+    _bulletMulitWay(bullets, x, y, {deg=270, space = 15, number = 5, isAim = true, tx = 0, ty = 0 } = {}) {
+        const vx=Util.degToX(deg)*BADDIES_BULLET_SPEED;
+        const vy=Util.degToY(deg)*BADDIES_BULLET_SPEED;            
+
+        const d = isAim ? Util.xyToDeg(tx, ty) : Util.xyToDeg(1, 0);
+        bullets.firing(x, y, vx, BADDIES_BULLET_SPEED, COLOR.RED);
+        const n = (number - 1) * 0.5;
+        for (let i = 1; i <= n; i++) {
+            bullets.firing(x, y, Util.degToX(d + (space * i) % 360) * BADDIES_BULLET_SPEED, Util.degToY(d + (space * i) % 360) * BADDIES_BULLET_SPEED, COLOR.RED);
+        }
+        for (let i = 1; i <= n; i++) {
+            bullets.firing(x, y, Util.degToX(d - (space * i) % 360) * BADDIES_BULLET_SPEED, Util.degToY(d - (space * i) % 360) * BADDIES_BULLET_SPEED, COLOR.RED);
+        }
+        return BADDIE_FIRELATE;
     }
 }
 class Baddie extends Mono {
     constructor() {
         super(new Moji(), new Collision(), new Unit());
+        this.scene;
         this.bulletCooltime = 0;
         this.bullets;
+        this.shot;
     }
     update() {
-        this.shot();
-    }
-    shot() {
         if (this.bulletCooltime <= 0) {
-            this.bulletCooltime = BADDIE_FIRELATE;
-            this.bullets.firing(this.pos.x, this.pos.y, 0, BADDIES_BULLET_SPEED, COLOR.RED);
-            let d = Util.xyToDeg(0, BADDIES_BULLET_SPEED);
-            this.bullets.firing(this.pos.x, this.pos.y, Util.degToX(d + 10 % 360) * BADDIES_BULLET_SPEED, Util.degToY(d + 10 % 360) * BADDIES_BULLET_SPEED, COLOR.RED);
-            this.bullets.firing(this.pos.x, this.pos.y, Util.degToX(d - 10 % 360) * BADDIES_BULLET_SPEED, Util.degToY(d - 10 % 360) * BADDIES_BULLET_SPEED, COLOR.RED);
+            this.bulletCooltime = this.shot(this.bullets, this.pos.x, this.pos.y, { isAim: false, tx: this.scene.player.pos.x, tx: this.scene.player.pos.y });
         } else {
             this.bulletCooltime -= 1 * game.delta;
         }
@@ -937,9 +980,9 @@ class Baddie extends Mono {
         ctx.fillStyle = COLOR.YELLOW;
         ctx.fillRect(x + 31, y + 3, 10, 10);
     }
-    knockdown() {
-        shared.ko++;
+    defeat() {
         this.putback();
+        return 1;
     }
 }
 class BulletBox extends Mono {
@@ -1001,5 +1044,17 @@ class SceneGameOver extends Mono {
         return result;
     }
 }
-game.pushScene(new SceneTitle());
-game.start();
+export const game = new Game();
+game.start(() => {
+    game.input.keybind('z', 'z', { button: 1 });
+    game.input.keybind('x', 'x', { button: 0 });
+    //背景
+    const ctx = game.layers['bg'].getContext('2d');
+    const grad = ctx.createLinearGradient(0, 0, 0, game.height);
+    grad.addColorStop(0, "#611180");
+    grad.addColorStop(1, "#253FB0");
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, game.width, game.height);
+
+    game.pushScene(new SceneTitle());
+});
