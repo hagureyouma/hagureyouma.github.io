@@ -810,7 +810,7 @@ class ScenePlay extends Mono {
         }
         if (this.isFailure) return;
         yield* this.showTelop('WARNING!', 2, 0.25);
-        const boss = this.baddies.spawn(game.width * 0.5, game.height * 0.2, 'greatcrow');
+        const boss = this.baddies.spawn(game.width * 0.5, game.height * 0.2, 'greatcrow', this);
         yield* waitForFrag(() => boss.unit.isDefeat);
         this.player.unit.invincible = true;
         yield* this.showTelop('束の間の安息を得た', 2);
@@ -942,18 +942,12 @@ class Baddies extends Mono {
         baddie.bulletCooltime = 0.1;
         return baddie;
     }
-    _bulletMulitWay(bullets, x, y, {deg=270, space = 15, number = 5, isAim = true, tx = 0, ty = 0 } = {}) {
-        const vx=Util.degToX(deg)*BADDIES_BULLET_SPEED;
-        const vy=Util.degToY(deg)*BADDIES_BULLET_SPEED;            
-
-        const d = isAim ? Util.xyToDeg(tx, ty) : Util.xyToDeg(1, 0);
-        bullets.firing(x, y, vx, BADDIES_BULLET_SPEED, COLOR.RED);
-        const n = (number - 1) * 0.5;
-        for (let i = 1; i <= n; i++) {
-            bullets.firing(x, y, Util.degToX(d + (space * i) % 360) * BADDIES_BULLET_SPEED, Util.degToY(d + (space * i) % 360) * BADDIES_BULLET_SPEED, COLOR.RED);
-        }
-        for (let i = 1; i <= n; i++) {
-            bullets.firing(x, y, Util.degToX(d - (space * i) % 360) * BADDIES_BULLET_SPEED, Util.degToY(d - (space * i) % 360) * BADDIES_BULLET_SPEED, COLOR.RED);
+    _bulletMulitWay(bullets, x, y, { deg = 270, space = 15, n = 5, isAim = true, tx = 0, ty = 0 } = {}) {
+        let d = deg;
+        if (isAim) d = Util.xyToDeg(tx - x, ty - y);
+        const offset = space * (n - 1) / 2;
+        for (let i = 0; i < n; i++) {
+            bullets.firing(x, y, Util.degToX(((d - offset) + (space * i)) % 360) * BADDIES_BULLET_SPEED, Util.degToY(((d - offset) + (space * i)) % 360) * BADDIES_BULLET_SPEED, COLOR.RED);
         }
         return BADDIE_FIRELATE;
     }
@@ -968,7 +962,7 @@ class Baddie extends Mono {
     }
     update() {
         if (this.bulletCooltime <= 0) {
-            this.bulletCooltime = this.shot(this.bullets, this.pos.x, this.pos.y, { isAim: false, tx: this.scene.player.pos.x, tx: this.scene.player.pos.y });
+            this.bulletCooltime = this.shot(this.bullets, this.pos.x, this.pos.y, { isAim: true, tx: this.scene.player.pos.x, ty: this.scene.player.pos.y });
         } else {
             this.bulletCooltime -= 1 * game.delta;
         }
@@ -978,7 +972,7 @@ class Baddie extends Mono {
         const x = pos.getScreenX();
         const y = pos.getScreenY();
         ctx.fillStyle = COLOR.YELLOW;
-        ctx.fillRect(x + 31, y + 3, 10, 10);
+        ctx.fillRect(x + pos.width * 0.65, y + pos.height * 0.10, pos.width * 0.125, pos.height * 0.125);
     }
     defeat() {
         this.putback();
