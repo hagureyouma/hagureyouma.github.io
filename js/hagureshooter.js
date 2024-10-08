@@ -1,9 +1,21 @@
-//シューティングゲーム
+//シューティングゲーム的なもの
 //by はぐれヨウマ
 
-//Javascript練習帳！
+{//Javascriptメモ
+//動的言語だからか入力補完があまり効かなくて不便～
+//thisは.の左のオブジェクトのこと！thisを固定するにはbindする　アロー関数=>のthisは変わらないよ
+//ゲッター・セッターはアロー関数=>に未対応
 //スプレッド構文[...配列]
+//ジェネレーター構文*method(){}関数を中断と再開できる アロー関数=>はない
+//jsファイルを後から読み込むには、script要素を追加してonloadイベントで待つのがいい？
+//a=yield 1;→b=generator.next();でbに1が返ってきて、続けてgenerator.next(2)でaに2が返ってくる　yieldの外と変数のやり取りができる
+//非同期 new Promise((resolve){非同期にやりたいこと;resolve();}).then(){非同期が終わってから呼ばれる};
 //async関数はresolveが呼んであるPromiseオブジェクトをreturnするよ
+//webフォントの読み込み待ちはonloadイベントでできないみたいなのでWebFontLoaderを使った
+}
+{//ゲームプログラミングメモ
+
+}
 'use strict';
 console.clear();
 
@@ -89,45 +101,15 @@ class Game {
     get height() { return this.screenRect.height };
     preLoad() {
         this.asettsName = arguments;
-        // const wf = document.createElement('script');
-        // wf.src = 'https://ajax.googleapis.com/ajax/libs/webfont/1.6.26/webfont.js';
-        // wf.onload = () => {
-        //     console.log('WebFontLoaderが読み込まれた');
-        //     const fonts = [];
-        //     for (const asset of arguments) {
-        //         switch (true) {
-        //             case /\.(jpg|jpeg|png|gif)$/i.test(asset):
-        //                 this.preloadPromises.push(new Promise(resolve => {
-        //                     const img = new Image();
-        //                     img.src = asset;
-        //                     img.onload(resolve());
-        //                 }));
-        //                 break;
-        //             default:
-        //                 fonts.push(asset);
-        //                 break;
-        //         }
-        //     }
-        //     this.preloadPromises.push(new Promise(resolve => {
-        //         WebFont.load({
-        //             google: { families: fonts }, custom: { families: ['FontAwesome'], urls: [iconUrl] }, active: () => {
-        //                 console.log('フォントが読み込まれたのだ');
-        //                 resolve();
-        //             }
-        //         });
-        //     }));
-        // };
-        // document.head.appendChild(wf);
     }
     start(create) {
         (async () => {
             await new Promise(resolve => {
                 const wf = document.createElement('script');
                 wf.src = 'https://ajax.googleapis.com/ajax/libs/webfont/1.6.26/webfont.js';
-                wf.onload = () => resolve();
+                wf.onload = resolve;
                 document.head.appendChild(wf);
             })
-            console.log('WebFontLoaderが読み込まれた');
             const promises = [];
             const fonts = [];
             for (const asset of this.asettsName) {
@@ -146,17 +128,10 @@ class Game {
             }
             promises.push(new Promise(resolve => {
                 WebFont.load({
-                    google: { families: fonts }, custom: { families: ['FontAwesome'], urls: [iconUrl] }, active: () => {
-                        console.log('フォントが読み込まれたのだ');
-                        resolve();
-                    }
+                    google: { families: fonts }, custom: { families: ['FontAwesome'], urls: [iconUrl] }, active: resolve
                 });
             }));
-            Promise.all([...promises, new Promise(resolve => addEventListener('load', () => {
-                console.log('ページが読み込まれたのだ');
-                resolve()
-            }))]).then(() => {
-                console.log('メインループ開始');
+            Promise.all([...promises, new Promise(resolve => addEventListener('load', resolve))]).then(() => {
                 this.input.init();
                 create?.();
                 this.time = performance.now();
