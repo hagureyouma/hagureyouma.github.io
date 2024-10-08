@@ -1,21 +1,15 @@
 //フォント読み込み
 function webFontLoader(font) {
 	window.WebFontConfig = {
-		google: {
-			families: font
-		},
-		active: function () {
-			sessionStorage.fonts = true;
-		}
+		google: { families: font },
+		active: () => sessionStorage.fonts = true
 	};
-	(function () {
-		var wf = document.createElement('script');
-		wf.src = 'https://ajax.googleapis.com/ajax/libs/webfont/1.6.26/webfont.js';
-		wf.type = 'text/javascript';
-		wf.async = 'true';
-		var s = document.getElementsByTagName('script')[0];
-		s.parentNode.insertBefore(wf, s);
-	})();
+	const wf = document.createElement('script');
+	wf.src = 'https://ajax.googleapis.com/ajax/libs/webfont/1.6.26/webfont.js';
+	wf.type = 'text/javascript';
+	wf.async = 'true';
+	const s = document.getElementsByTagName('script')[0];
+	s.parentNode.insertBefore(wf, s);
 }
 webFontLoader(['Press+Start+2P', 'M+PLUS+Rounded+1c']);
 //画像の拡大表示

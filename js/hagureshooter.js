@@ -1,3 +1,9 @@
+//シューティングゲーム
+//by はぐれヨウマ
+
+//Javascript練習帳！
+//スプレッド構文[...配列]
+//async関数はresolveが呼んであるPromiseオブジェクトをreturnするよ
 'use strict';
 console.clear();
 
@@ -49,9 +55,6 @@ const BADDIE_FIRELATE = 1 / 0.5;
 
 class Game {
     constructor(width = 360, height = 480) {
-        const head = document.querySelector('head');
-        head.insertAdjacentHTML('beforeend', `<link rel="stylesheet" type="text/css" href="${iconUrl}" /> `);
-        head.insertAdjacentHTML('beforeend', `<link rel="stylesheet" type="text/css" href="${fontUrl}" /> `);
         const body = document.querySelector('body');
         body.style.backgroundColor = COLOR.BLACK;
         this.screenRect = new Rect().set(0, 0, width, height);
@@ -64,7 +67,7 @@ class Game {
             canvas.style.left = 0
             canvas.style.right = 0;
             canvas.style.margin = '0 auto';
-            body.appendChild(this.layers[layer] = canvas);
+            document.body.appendChild(this.layers[layer] = canvas);
         }
         const bg = this.layers['bg'].getContext('2d');
         bg.fillStyle = COLOR.BLACK;
@@ -78,17 +81,88 @@ class Game {
         this.time;
         this.delta;
         this.fpsBuffer = Array.from({ length: 60 });
+        this.asettsName;
+        this.preloadPromises = [];
+        this.assets = {}
     }
     get width() { return this.screenRect.width };
     get height() { return this.screenRect.height };
+    preLoad() {
+        this.asettsName = arguments;
+        // const wf = document.createElement('script');
+        // wf.src = 'https://ajax.googleapis.com/ajax/libs/webfont/1.6.26/webfont.js';
+        // wf.onload = () => {
+        //     console.log('WebFontLoaderが読み込まれた');
+        //     const fonts = [];
+        //     for (const asset of arguments) {
+        //         switch (true) {
+        //             case /\.(jpg|jpeg|png|gif)$/i.test(asset):
+        //                 this.preloadPromises.push(new Promise(resolve => {
+        //                     const img = new Image();
+        //                     img.src = asset;
+        //                     img.onload(resolve());
+        //                 }));
+        //                 break;
+        //             default:
+        //                 fonts.push(asset);
+        //                 break;
+        //         }
+        //     }
+        //     this.preloadPromises.push(new Promise(resolve => {
+        //         WebFont.load({
+        //             google: { families: fonts }, custom: { families: ['FontAwesome'], urls: [iconUrl] }, active: () => {
+        //                 console.log('フォントが読み込まれたのだ');
+        //                 resolve();
+        //             }
+        //         });
+        //     }));
+        // };
+        // document.head.appendChild(wf);
+    }
     start(create) {
-        addEventListener('load', () => {
-            //todo:preload?
-            this.input.init();
-            create?.();
-            this.time = performance.now();
-            this.mainloop();
-        });
+        (async () => {
+            await new Promise(resolve => {
+                const wf = document.createElement('script');
+                wf.src = 'https://ajax.googleapis.com/ajax/libs/webfont/1.6.26/webfont.js';
+                wf.onload = () => resolve();
+                document.head.appendChild(wf);
+            })
+            console.log('WebFontLoaderが読み込まれた');
+            const promises = [];
+            const fonts = [];
+            for (const asset of this.asettsName) {
+                switch (true) {
+                    case /\.(jpg|jpeg|png|gif)$/i.test(asset):
+                        promises.push(new Promise(resolve => {
+                            const img = new Image();
+                            img.src = asset;
+                            img.onload(resolve());
+                        }));
+                        break;
+                    default:
+                        fonts.push(asset);
+                        break;
+                }
+            }
+            promises.push(new Promise(resolve => {
+                WebFont.load({
+                    google: { families: fonts }, custom: { families: ['FontAwesome'], urls: [iconUrl] }, active: () => {
+                        console.log('フォントが読み込まれたのだ');
+                        resolve();
+                    }
+                });
+            }));
+            Promise.all([...promises, new Promise(resolve => addEventListener('load', () => {
+                console.log('ページが読み込まれたのだ');
+                resolve()
+            }))]).then(() => {
+                console.log('メインループ開始');
+                this.input.init();
+                create?.();
+                this.time = performance.now();
+                this.mainloop();
+            }).catch(reject => console.error(reject));
+        })();
     }
     mainloop() {
         const now = performance.now();
@@ -1039,6 +1113,7 @@ class SceneGameOver extends Mono {
     }
 }
 export const game = new Game();
+game.preLoad('Kaisei+Decol');
 game.start(() => {
     game.input.keybind('z', 'z', { button: 1 });
     game.input.keybind('x', 'x', { button: 0 });
