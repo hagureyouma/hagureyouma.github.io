@@ -2,16 +2,16 @@
 //by はぐれヨウマ
 
 {//Javascriptメモ
-//動的言語だからか入力補完があまり効かなくて不便～
-//thisは.の左のオブジェクトのこと！thisを固定するにはbindする　アロー関数=>のthisは変わらないよ
-//ゲッター・セッターはアロー関数=>に未対応
-//スプレッド構文[...配列]
-//ジェネレーター構文*method(){}関数を中断と再開できる アロー関数=>はない
-//jsファイルを後から読み込むには、script要素を追加してonloadイベントで待つのがいい？
-//a=yield 1;→b=generator.next();でbに1が返ってきて、続けてgenerator.next(2)でaに2が返ってくる　yieldの外と変数のやり取りができる
-//非同期 new Promise((resolve){非同期にやりたいこと;resolve();}).then(){非同期が終わってから呼ばれる};
-//async関数はresolveが呼んであるPromiseオブジェクトをreturnするよ
-//webフォントの読み込み待ちはonloadイベントでできないみたいなのでWebFontLoaderを使った
+    //動的言語だからか入力補完があまり効かなくて不便～
+    //thisは.の左のオブジェクトのこと！thisを固定するにはbindする　アロー関数=>のthisは変わらないよ
+    //ゲッター・セッターはアロー関数=>に未対応
+    //スプレッド構文[...配列]
+    //ジェネレーター構文*method(){}関数を中断と再開できる アロー関数=>はない
+    //jsファイルを後から読み込むには、script要素を追加してonloadイベントで待つのがいい？
+    //a=yield 1;→b=generator.next();でbに1が返ってきて、続けてgenerator.next(2)でaに2が返ってくる　yieldの外と変数のやり取りができる
+    //非同期 new Promise((resolve){非同期にやりたいこと;resolve();}).then(){非同期が終わってから呼ばれる};
+    //async関数はresolveが呼んであるPromiseオブジェクトをreturnするよ
+    //webフォントの読み込み待ちはonloadイベントでできないみたいなのでWebFontLoaderを使った
 }
 {//ゲームプログラミングメモ
 
@@ -67,8 +67,7 @@ const BADDIE_FIRELATE = 1 / 0.5;
 
 class Game {
     constructor(width = 360, height = 480) {
-        const body = document.querySelector('body');
-        body.style.backgroundColor = COLOR.BLACK;
+        document.body.style.backgroundColor = COLOR.BLACK;
         this.screenRect = new Rect().set(0, 0, width, height);
         this.layers = {};
         for (const layer of LAYER_NAME) {
@@ -94,8 +93,6 @@ class Game {
         this.delta;
         this.fpsBuffer = Array.from({ length: 60 });
         this.asettsName;
-        this.preloadPromises = [];
-        this.assets = {}
     }
     get width() { return this.screenRect.width };
     get height() { return this.screenRect.height };
@@ -104,34 +101,34 @@ class Game {
     }
     start(create) {
         (async () => {
+            const pageLoadPromise = new Promise(resolve => addEventListener('load', resolve));
             await new Promise(resolve => {
                 const wf = document.createElement('script');
                 wf.src = 'https://ajax.googleapis.com/ajax/libs/webfont/1.6.26/webfont.js';
                 wf.onload = resolve;
                 document.head.appendChild(wf);
             })
-            const promises = [];
             const fonts = [];
             for (const asset of this.asettsName) {
                 switch (true) {
-                    case /\.(jpg|jpeg|png|gif)$/i.test(asset):
-                        promises.push(new Promise(resolve => {
+                    case Util.isImageFile(asset):
+                        await new Promise(resolve => {
                             const img = new Image();
                             img.src = asset;
                             img.onload(resolve());
-                        }));
+                        });
                         break;
                     default:
                         fonts.push(asset);
                         break;
                 }
             }
-            promises.push(new Promise(resolve => {
+            await new Promise(resolve => {
                 WebFont.load({
                     google: { families: fonts }, custom: { families: ['FontAwesome'], urls: [iconUrl] }, active: resolve
                 });
-            }));
-            Promise.all([...promises, new Promise(resolve => addEventListener('load', resolve))]).then(() => {
+            });
+            await pageLoadPromise.then(() => {
                 this.input.init();
                 create?.();
                 this.time = performance.now();
@@ -249,6 +246,7 @@ class Util {
     static isGenerator = (obj) => obj && typeof obj.next === 'function' && typeof obj.throw === 'function';
     static isEven = (n) => n % 2 === 0;
     static hexColor = (hex, alpha) => `${hex}${alpha.toString(16).padStart(2, '0')}`;
+    static isImageFile = (file) => /\.(jpg|jpeg|png|gif)$/i.test(file)
 }
 class Rect {
     constructor() {
