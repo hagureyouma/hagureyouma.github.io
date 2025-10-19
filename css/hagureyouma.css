@@ -533,8 +533,7 @@ table .gray {
 .datalist th {
     background: var(--c-accent);
     color: var(--c-main);
-    padding: 0.5em;
-    white-space: nowrap;
+    padding: 0.25em 0.25em;
 }
 
 .datalist tr:last-child td:first-child {
@@ -546,7 +545,7 @@ table .gray {
 }
 
 .datalist td {
-    padding: 0.25em 0.5em;
+    padding: 0.25em 0.25em;
 }
 
 summary {
