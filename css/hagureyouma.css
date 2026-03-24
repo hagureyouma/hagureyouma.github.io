@@ -72,11 +72,11 @@ h4,
 h5,
 h6 {
     font-family: "M PLUS Rounded 1c", sans-serif;
+        margin: 1rem 0;
 }
 
 h1 {
     font-size: var(--fs-xxl);
-    margin: 1rem 0;
 }
 
 h1::before,
@@ -270,6 +270,7 @@ dd {
 .column h3 {
     border-bottom: none;
     color: var(--c-text);
+    background: var(--c-column);
 }
 
 .menu h3::before {
